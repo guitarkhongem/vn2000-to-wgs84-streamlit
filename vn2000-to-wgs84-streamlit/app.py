@@ -3,6 +3,7 @@ import streamlit as st
 from vn2000_to_wgs84_baibao import vn2000_to_wgs84_baibao
 
 st.set_page_config(page_title="VN2000 ➜ WGS84 (chuẩn bài báo)", layout="centered")
+st.image("logo.jpg", width=120)
 st.title("📐 Chuyển đổi tọa độ VN2000 ➜ WGS84 (Công thức bài báo khoa học)")
 
 st.markdown("#### 🔢 Nhập tọa độ VN-2000:")
@@ -16,9 +17,17 @@ if st.button("🔄 Chuyển đổi"):
     lat, lon, h_out = vn2000_to_wgs84_baibao(x, y, h, lon0)
 
     st.success("✅ Kết quả chuyển đổi (WGS84):")
-    st.markdown(f"<h2>🧭 Kinh độ (Lon): <code>{lon}</code></h2>", unsafe_allow_html=True)
-    st.markdown(f"<h2>🧭 Vĩ độ (Lat): <code>{lat}</code></h2>", unsafe_allow_html=True)
-    st.markdown(f"<h2>📏 Cao độ elipsoid (H): <code>{h_out}</code> m</h2>", unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+        <div style='background-color:#FFD700;padding:15px;border-radius:10px'>
+        <h2 style='color:#000000;'>🧭 Kinh độ (Lon): <code>{lon}</code></h2>
+        <h2 style='color:#000000;'>🧭 Vĩ độ (Lat): <code>{lat}</code></h2>
+        <h2 style='color:#000000;'>📏 Cao độ elipsoid (H): <code>{h_out}</code> m</h2>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     st.markdown("---")
     st.markdown("""
