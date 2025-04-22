@@ -1,42 +1,68 @@
 
 import streamlit as st
+import pandas as pd
 from vn2000_to_wgs84_baibao import vn2000_to_wgs84_baibao
 
-st.set_page_config(page_title="VN2000 ➜ WGS84 (chuẩn bài báo)", layout="centered")
-st.image("logo.jpg", width=120)
-st.title("📐 Chuyển đổi tọa độ VN2000 ➜ WGS84 (Công thức bài báo khoa học)")
+st.set_page_config(page_title="VN2000 ➜ WGS84", layout="centered")
 
-st.markdown("#### 🔢 Nhập tọa độ VN-2000:")
+# Logo và tiêu đề phụ
+col1, col2 = st.columns([1, 3])
+with col1:
+    st.image("logo.jpg", width=100)
+with col2:
+    st.markdown("<h4 style='margin-top:40px;'>BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA</h4>", unsafe_allow_html=True)
 
-x = st.number_input("Tọa độ X (Northing)", value=1855759.3584, format="%.4f")
-y = st.number_input("Tọa độ Y (Easting)", value=546151.8072, format="%.4f")
-h = st.number_input("Cao độ elipsoid (H)", value=846.1115, format="%.4f")
-lon0 = st.number_input("Kinh tuyến trục (VD: 106.25)", value=106.25)
+# Tiêu đề chính
+st.markdown("### 🛰️ VN2000 ➜ WGS84", unsafe_allow_html=True)
+st.markdown("<div style='font-size: 0.7em; color: gray;'>Chuyển đổi tọa độ theo hệ quy chiếu quốc gia</div>", unsafe_allow_html=True)
 
-if st.button("🔄 Chuyển đổi"):
-    lat, lon, h_out = vn2000_to_wgs84_baibao(x, y, h, lon0)
+# Nhập dữ liệu
+st.markdown("#### 🔢 Nhập tọa độ VN2000 (X Y Z – cách nhau bởi dấu cách, tab hoặc enter):")
+coords_input = st.text_area("Mỗi dòng một điểm hoặc nhập liên tục", height=200)
 
-    st.success("✅ Kết quả chuyển đổi (WGS84):")
+# Chọn kinh tuyến trục
+lon0 = st.selectbox("🌐 Chọn kinh tuyến trục (°)", [
+    102.75, 103.0, 103.5, 104.0, 104.25, 104.5, 105.0,
+    105.25, 105.5, 106.0, 106.25, 106.5, 107.0, 107.25,
+    107.5, 108.0, 108.25, 108.5, 109.0, 109.25, 109.5
+], index=10)
 
-    st.markdown(
-        f"""
-        <div style='background-color:#FFD700;padding:15px;border-radius:10px'>
-        <h2 style='color:#000000;'>🧭 Kinh độ (Lon): <code>{lon}</code></h2>
-        <h2 style='color:#000000;'>🧭 Vĩ độ (Lat): <code>{lat}</code></h2>
-        <h2 style='color:#000000;'>📏 Cao độ elipsoid (H): <code>{h_out}</code> m</h2>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+# Nút chuyển đổi
+if st.button("🔁 Chuyển đổi"):
+    # Tách theo mọi ký tự trắng, xuống dòng hoặc tab
+    raw_data = coords_input.replace('\t', ' ').replace('\n', ' ')
+    tokens = raw_data.split()
 
-    st.markdown("---")
-    st.markdown("""
-    <div style='font-size: 16px; color: gray;'>
-    🔍 **Nguồn công thức**:  
-    Bài báo khoa học: <strong>CÔNG TÁC TÍNH CHUYỂN TỌA ĐỘ TRONG CÔNG NGHỆ MÁY BAY KHÔNG NGƯỜI LÁI CÓ ĐỊNH VỊ TÂM CHỤP CHÍNH XÁC</strong><br>
-    Tác giả: Trần Trung Anh<sup>1</sup>, Quách Mạnh Tuấn<sup>2</sup><br>
-    <sup>1</sup>Trường Đại học Mỏ - Địa chất<br>
-    <sup>2</sup>Công ty CP Xây dựng và Thương mại QT Miền Bắc<br><br>
-    Trình bày tại: <strong>HỘI NGHỊ KHOA HỌC QUỐC GIA VỀ CÔNG NGHỆ ĐỊA KHÔNG GIAN TRONG KHOA HỌC TRÁI ĐẤT VÀ MÔI TRƯỜNG</strong>
-    </div>
-    """, unsafe_allow_html=True)
+    rows = []
+    for i in range(0, len(tokens), 3):
+        try:
+            x = float(tokens[i])
+            y = float(tokens[i + 1])
+            z = float(tokens[i + 2]) if i + 2 < len(tokens) else 0.0
+            lat, lon, alt = vn2000_to_wgs84_baibao(x, y, z, lon0)
+            rows.append({
+                "X": x,
+                "Y": y,
+                "Z": z,
+                "Kinh độ (Lon)": round(lon, 15),
+                "Vĩ độ (Lat)": round(lat, 15),
+                "Cao độ Altitude (m)": round(alt, 4)
+            })
+        except:
+            continue
+
+    if rows:
+        st.success("✅ Chuyển đổi thành công!")
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("⚠️ Không có dữ liệu hợp lệ.")
+
+# Ghi chú cuối trang
+st.markdown("---")
+st.markdown("🔍 **Nguồn công thức**: Bài báo khoa học: "
+            "**CÔNG TÁC TÍNH CHUYỂN TỌA ĐỘ TRONG CÔNG NGHỆ MÁY BAY KHÔNG NGƯỜI LÁI CÓ ĐỊNH VỊ TÂM CHỤP CHÍNH XÁC**  \n"
+            "Tác giả: Trần Trung Anh¹, Quách Mạnh Tuấn²  \n"
+            "¹ Trường Đại học Mỏ - Địa chất  \n"
+            "² Công ty CP Xây dựng và Thương mại QT Miền Bắc  \n"
+            "_Trình bày tại: HỘI NGHỊ KHOA HỌC QUỐC GIA VỀ CÔNG NGHỆ ĐỊA KHÔNG GIAN TRONG KHOA HỌC TRÁI ĐẤT VÀ MÔI TRƯỜNG_")
