@@ -23,8 +23,11 @@ if st.button("🔄 Chuyển đổi"):
     st.markdown("---")
     st.markdown("""
     <div style='font-size: 16px; color: gray;'>
-    🔍 **Nguồn công thức**: Bài báo khoa học trình bày tại  
-    <strong>HỘI NGHỊ KHOA HỌC QUỐC GIA VỀ CÔNG NGHỆ ĐỊA KHÔNG GIAN  
-    TRONG KHOA HỌC TRÁI ĐẤT VÀ MÔI TRƯỜNG</strong>.
+    🔍 **Nguồn công thức**:  
+    Bài báo khoa học: <strong>CÔNG TÁC TÍNH CHUYỂN TỌA ĐỘ TRONG CÔNG NGHỆ MÁY BAY KHÔNG NGƯỜI LÁI CÓ ĐỊNH VỊ TÂM CHỤP CHÍNH XÁC</strong><br>
+    Tác giả: Trần Trung Anh<sup>1</sup>, Quách Mạnh Tuấn<sup>2</sup><br>
+    <sup>1</sup>Trường Đại học Mỏ - Địa chất<br>
+    <sup>2</sup>Công ty CP Xây dựng và Thương mại QT Miền Bắc<br><br>
+    Trình bày tại: <strong>HỘI NGHỊ KHOA HỌC QUỐC GIA VỀ CÔNG NGHỆ ĐỊA KHÔNG GIAN TRONG KHOA HỌC TRÁI ĐẤT VÀ MÔI TRƯỜNG</strong>
     </div>
     """, unsafe_allow_html=True)
