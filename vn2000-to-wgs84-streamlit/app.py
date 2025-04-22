@@ -8,45 +8,33 @@ e2 = 2 * f - f ** 2
 e4 = e2 ** 2
 e6 = e2 ** 3
 
-# --- Các hệ số chuỗi TM3 ---
-A0 = 1 - (e2 / 4) - (3 * e4 / 64) - (5 * e6 / 256)
-A2 = (3 / 8) * (e2 + (e4 / 4) + (15 * e6 / 128))
-A4 = (15 / 256) * (e4 + (3 * e6 / 4))
-A6 = (35 * e6) / 3072
+# --- 7 tham số Helmert (QĐ 05/2007) ---
+dx = -191.90441429
+dy = -39.30318279
+dz = -111.45032835
+rx = math.radians(-0.00928836 / 3600)
+ry = math.radians(0.01975479 / 3600)
+rz = math.radians(-0.00427372 / 3600)
+s = 0.252906278 * 1e-6  # ppm ➜ hệ số
 
-# --- Bảng kinh tuyến trục theo tỉnh ---
-province_lon0 = {
-    "Lai Châu": 103.0, "Điện Biên": 103.0, "Sơn La": 104.0, "Lào Cai": 104.75,
-    "Yên Bái": 104.75, "Hà Giang": 105.5, "Tuyên Quang": 106.0, "Phú Thọ": 104.75,
-    "Vĩnh Phúc": 105.0, "Cao Bằng": 105.75, "Lạng Sơn": 107.25, "Bắc Kạn": 106.5,
-    "Thái Nguyên": 106.5, "Bắc Giang": 107.0, "Bắc Ninh": 105.5, "Quảng Ninh": 107.75,
-    "TP. Hải Phòng": 105.75, "Hải Dương": 105.5, "Hưng Yên": 105.5, "TP. Hà Nội": 105.0,
-    "Hòa Bình": 106.0, "Hà Nam": 105.0, "Nam Định": 105.5, "Thái Bình": 105.5,
-    "Ninh Bình": 105.0, "Thanh Hóa": 105.0, "Nghệ An": 104.75, "Hà Tĩnh": 105.5,
-    "Quảng Bình": 106.0, "Quảng Trị": 106.25, "Thừa Thiên – Huế": 107.0, "TP. Đà Nẵng": 107.75,
-    "Quảng Nam": 107.75, "Quảng Ngãi": 108.0, "Bình Định": 108.25, "Kon Tum": 107.5,
-    "Gia Lai": 108.5, "Đắk Lắk": 108.5, "Đắk Nông": 108.5, "Phú Yên": 108.5,
-    "Khánh Hòa": 108.25, "Ninh Thuận": 108.25, "Bình Thuận": 108.5, "Lâm Đồng": 107.75,
-    "Bình Dương": 105.75, "Bình Phước": 106.25, "Đồng Nai": 107.75, "Bà Rịa – Vũng Tàu": 107.75,
-    "Tây Ninh": 105.5, "Long An": 105.75, "Tiền Giang": 105.75, "Bến Tre": 105.75,
-    "Đồng Tháp": 105.0, "Vĩnh Long": 105.5, "Trà Vinh": 105.5, "An Giang": 104.75,
-    "Kiên Giang": 104.5, "TP. Cần Thơ": 105.0, "Hậu Giang": 105.0, "Sóc Trăng": 105.5,
-    "Bạc Liêu": 105.0, "Cà Mau": 104.5, "TP. Hồ Chí Minh": 105.75
+# --- TM3 chuỗi hệ số ---
+A0 = 1 - e2 / 4 - 3 * e4 / 64 - 5 * e6 / 256
+A2 = 3 / 8 * (e2 + e4 / 4 + 15 * e6 / 128)
+A4 = 15 / 256 * (e4 + 3 * e6 / 4)
+A6 = 35 * e6 / 3072
+
+# --- Kinh tuyến trục và độ cao Geoid một số tỉnh ---
+province_data = {
+    "Thanh Hóa": {"lon0": 105.0, "geoid": 20.947},
+    "Hà Nội": {"lon0": 105.0, "geoid": 20.0},
+    "Quảng Trị": {"lon0": 106.25, "geoid": 18.0},
+    "Đà Nẵng": {"lon0": 107.75, "geoid": 19.5},
+    "TP. Hồ Chí Minh": {"lon0": 105.75, "geoid": 17.0},
+    "Cà Mau": {"lon0": 104.5, "geoid": 15.5},
 }
 
-
-# --- Mô hình độ cao Geoid trung bình theo địa phương (có thể mở rộng sau) ---
-geoid_height_by_province = {
-    "Thanh Hóa": 20.947,
-    "Hà Nội": 20.0,
-    "Quảng Trị": 18.0,
-    "TP. Hồ Chí Minh": 17.0,
-    "Đà Nẵng": 19.5,
-    # Tạm ước lượng, có thể thay bằng mô hình EGM sau
-}
-
-# --- Thuật toán nghịch TM3 ---
-def inverse_tm3(x, y, lon0_deg, k0=0.9999, x0=0, y0=500000):
+# --- B1: xy ➜ B, L, h ---
+def xy2BL(x, y, lon0_deg, H0, geoid, k0=0.9999, x0=0, y0=500000):
     M = (x - x0) / k0
     mu = M / (a * A0)
     phi1 = mu + A2 * math.sin(2 * mu) + A4 * math.sin(4 * mu) + A6 * math.sin(6 * mu)
@@ -56,50 +44,72 @@ def inverse_tm3(x, y, lon0_deg, k0=0.9999, x0=0, y0=500000):
     N1 = a / math.sqrt(1 - e2 * math.sin(phi1) ** 2)
     R1 = N1 * (1 - e2) / (1 - e2 * math.sin(phi1) ** 2)
     D = (y - y0) / (N1 * k0)
-    lat = phi1 - (N1 * math.tan(phi1) / R1) * (
-        (D ** 2) / 2 -
-        (5 + 3 * T1 + 10 * C1 - 4 * C1 ** 2 - 9 * e1sq) * D ** 4 / 24 +
-        (61 + 90 * T1 + 298 * C1 + 45 * T1 ** 2 - 252 * e1sq - 3 * C1 ** 2) * D ** 6 / 720
+    B = phi1 - (N1 * math.tan(phi1) / R1) * (
+        D**2 / 2 - (5 + 3*T1 + 10*C1 - 4*C1**2 - 9*e1sq) * D**4 / 24 +
+        (61 + 90*T1 + 298*C1 + 45*T1**2 - 252*e1sq - 3*C1**2) * D**6 / 720
     )
-    lon0 = math.radians(lon0_deg)
-    lon = lon0 + (
-        D -
-        (1 + 2 * T1 + C1) * D ** 3 / 6 +
-        (5 - 2 * C1 + 28 * T1 - 3 * C1 ** 2 + 8 * e1sq + 24 * T1 ** 2) * D ** 5 / 120
+    L0 = math.radians(lon0_deg)
+    L = L0 + (
+        D - (1 + 2*T1 + C1) * D**3 / 6 +
+        (5 - 2*C1 + 28*T1 - 3*C1**2 + 8*e1sq + 24*T1**2) * D**5 / 120
     ) / math.cos(phi1)
-    return round(math.degrees(lat), 15), round(math.degrees(lon), 15)
+    h = H0 + geoid
+    return B, L, h
 
-# --- Hàm tính h (cao độ elipsoid) ---
-def convert_height_geoid_to_ellipsoid(H0, N=20.947):
-    return round(H0 + N, 3)
+# --- B2: BLH ➜ XYZ ---
+def BLH2XYZ(B, L, h):
+    N = a / math.sqrt(1 - e2 * math.sin(B) ** 2)
+    X = (N + h) * math.cos(B) * math.cos(L)
+    Y = (N + h) * math.cos(B) * math.sin(L)
+    Z = (N * (1 - e2) + h) * math.sin(B)
+    return X, Y, Z
 
-# === Giao diện Streamlit ===
-st.set_page_config(page_title="Chuyển VN2000 ➜ WGS84 (có cao độ)", layout="centered")
-st.title("🛰️ Chuyển VN2000 ➜ WGS84 theo thuật toán bài báo (TM3 + cao độ)")
+# --- B3: 7 tham số Helmert ---
+def transform7(X, Y, Z):
+    X2 = X + dx + s * X + (-rz) * Y + ry * Z
+    Y2 = Y + dy + rz * X + s * Y + (-rx) * Z
+    Z2 = Z + dz + (-ry) * X + rx * Y + s * Z
+    return X2, Y2, Z2
 
-st.subheader("🔢 Nhập tọa độ phẳng và cao độ địa hình")
-x = st.text_input("Tọa độ X (m)", placeholder="Ví dụ: 2222373.588")
-y = st.text_input("Tọa độ Y (m)", placeholder="Ví dụ: 595532.212")
-z = st.text_input("Cao độ Z (theo mực nước biển - H₀, m)", placeholder="Ví dụ: 135.604", value="0")
+# --- B4: XYZ ➜ BLH (WGS84) ---
+def XYZ2BLH(X, Y, Z, eps=1e-11):
+    p = math.sqrt(X**2 + Y**2)
+    lon = math.atan2(Y, X)
+    lat = math.atan2(Z, p * (1 - e2))
+    lat0 = 0
+    while abs(lat - lat0) > eps:
+        lat0 = lat
+        N = a / math.sqrt(1 - e2 * math.sin(lat0)**2)
+        h = p / math.cos(lat0) - N
+        lat = math.atan2(Z, p * (1 - e2 * N / (N + h)))
+    N = a / math.sqrt(1 - e2 * math.sin(lat)**2)
+    h = p / math.cos(lat) - N
+    return math.degrees(lat), math.degrees(lon), round(h, 3)
 
-province = st.selectbox("Chọn tỉnh/thành", list(province_lon0.keys()))
-lon0 = province_lon0[province]
-geoid_N = geoid_height_by_province.get(province, 20.0)  # fallback
+# --- Giao diện Streamlit ---
+st.set_page_config(page_title="VN2000 ➜ WGS84 (4 bước kỹ thuật)", layout="centered")
+st.title("🛰️ Chuyển VN-2000 ➜ WGS84 theo 4 bước kỹ thuật (TM3, 7 tham số)")
+
+x = st.text_input("Nhập tọa độ X (m)", placeholder="VD: 2222373.588")
+y = st.text_input("Nhập tọa độ Y (m)", placeholder="VD: 595532.212")
+z = st.text_input("Nhập cao độ địa hình Z (H₀, m)", placeholder="VD: 135.604", value="0")
+province = st.selectbox("Chọn tỉnh", list(province_data.keys()))
 
 if st.button("📍 Chuyển đổi"):
     try:
-        x_val = float(x)
-        y_val = float(y)
-        z_val = float(z)
-        lat, lon = inverse_tm3(x_val, y_val, lon0)
-        h = convert_height_geoid_to_ellipsoid(z_val, geoid_N)
+        x, y, z = float(x), float(y), float(z)
+        lon0 = province_data[province]["lon0"]
+        geoid = province_data[province]["geoid"]
 
-        st.success(f"""
-        ✅ Kết quả chuyển đổi:
-        • Vĩ độ (Latitude): `{lat:.15f}`
-        • Kinh độ (Longitude): `{lon:.15f}`
-        • Cao độ địa hình (H₀): `{z_val:.3f} m`
-        • Cao độ elipsoid (h): `{h:.3f} m` (H₀ + N với N = {geoid_N} m)
-        """)
+        # B1 ➜ B2 ➜ B3 ➜ B4
+        B, L, h = xy2BL(x, y, lon0, z, geoid)
+        X1, Y1, Z1 = BLH2XYZ(B, L, h)
+        X2, Y2, Z2 = transform7(X1, Y1, Z1)
+        lat, lon, h_final = XYZ2BLH(X2, Y2, Z2)
+
+        st.success(f"""✅ Kết quả WGS84:
+        • Vĩ độ (Lat): `{lat:.15f}`
+        • Kinh độ (Lon): `{lon:.15f}`
+        • Cao độ elipsoid (h): `{h_final:.3f} m`""")
     except:
-        st.error("Vui lòng nhập số hợp lệ cho X, Y, Z.")
+        st.error("❌ Vui lòng nhập đúng định dạng số.")
