@@ -25,67 +25,38 @@ import folium
 from streamlit_folium import st_folium
 
 import re
+
 def parse_coordinates(text, group=3):
     """
     Chia token space/tab/newline thành nhóm `group` float.
-    Bỏ qua bất cứ token nào chứa ký tự chữ (STT dạng A1, PT01…),
-    rồi gom tiếp các token số còn lại thành từng bộ [X, Y, Z].
+    Bỏ qua token STT nếu
+     - chứa ký tự chữ (A10, PT01…)
+     - hoặc là số nguyên không chứa dấu '.' khi nó đứng trước đủ group+1 token (ví dụ '10' trước X Y Z)
     """
-    # Tách mọi khoảng trắng (space, tab, newline)
     tokens = re.split(r'\s+', text.strip())
     coords = []
     i = 0
-
     while i + group <= len(tokens):
-        # Nếu token chứa ký tự chữ, coi là STT, bỏ qua
-        if re.search(r'[A-Za-z]', tokens[i]):
+        t0 = tokens[i]
+        # Bỏ STT chứa chữ hoặc số nguyên mà kế tiếp có đủ group giá trị
+        if re.search(r'[A-Za-z]', t0) or ('.' not in t0 and re.fullmatch(r'\d+', t0) and len(tokens) - i >= group+1):
             i += 1
             continue
 
-        # Thử lấy đúng nhóm group
-        chunk = tokens[i : i + group]
+        # Lấy nhóm group token
+        chunk = tokens[i : i+group]
         try:
             vals = [float(x.replace(',', '.')) for x in chunk]
             coords.append(vals)
             i += group
         except ValueError:
-            # Nếu có bất kỳ phần tử không float được, bỏ qua token đầu và thử lại
+            # chunk chưa đúng, bỏ qua token đầu và thử lại
             i += 1
 
     return coords
 
-def render_map(df):
-    """Hiển thị các điểm lên bản đồ vệ tinh Folium."""
-    if df is None or df.empty:
-        st.warning("⚠️ Không có dữ liệu để hiển thị bản đồ.")
-        return
-
-    # Đổi cột cho Folium
-    lat_col = "Vĩ độ (Lat)" if "Vĩ độ (Lat)" in df.columns else "latitude"
-    lon_col = "Kinh độ (Lon)" if "Kinh độ (Lon)" in df.columns else "longitude"
-    df_map = df.rename(columns={lat_col: "latitude", lon_col: "longitude"})
-
-    # Tọa độ trung tâm
-    center_lat = float(df_map["latitude"].mean())
-    center_lon = float(df_map["longitude"].mean())
-
-    # Tạo bản đồ vệ tinh Esri
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=14,
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attr="Esri.WorldImagery"
-    )
-
-    # Vẽ mỗi điểm dưới dạng CircleMarker nhỏ
-    for idx, row in df_map.iterrows():
-        folium.CircleMarker(
-            location=(row["latitude"], row["longitude"]),
-            radius=3,         # 3 pixel giống vị trí GPS
-            color="red",
-            fill=True,
-            fill_opacity=0.8,
-        ).add_to(m)
+st.markdown("#### 🌐 Overlay KML (tùy chọn)")
+kml_file = st.file_uploader("Upload file .kml của bạn", type="kml")
 
     # Hiển thị trong Streamlit
     st_folium(m, width=700, height=500)
@@ -111,6 +82,8 @@ with tab1:
             st.dataframe(df)
         else:
             st.warning("⚠️ Không có dữ liệu hợp lệ (cần 3 số mỗi bộ).")
+st.markdown("#### 🌐 Overlay KML (tùy chọn)")
+kml_file = st.file_uploader("Upload file .kml của bạn", type="kml")
 
 with tab2:
     st.markdown("#### 🔢 Nhập tọa độ WGS84 (Lat Lon H – space/tab/newline):")
@@ -129,9 +102,10 @@ with tab2:
         else:
             st.warning("⚠️ Không có dữ liệu hợp lệ (cần 3 số mỗi bộ).")
 
-# Nếu có DataFrame, vẽ bản đồ
+# ... sau khi st.session_state.df đã được gán
 if "df" in st.session_state:
-    render_map(st.session_state.df)
+    render_map(st.session_state.df, kml_bytes=kml_file)
+
 
 st.markdown("---")
 st.markdown(
