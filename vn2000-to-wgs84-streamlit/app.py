@@ -38,6 +38,10 @@ def parse_coordinates(text, group=3):
             i += 1
     return coords
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of a5cba7f (Update app.py)
 =======
 
 >>>>>>> parent of a5cba7f (Update app.py)
