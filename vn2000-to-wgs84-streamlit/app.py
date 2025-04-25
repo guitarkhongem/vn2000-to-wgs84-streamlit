@@ -69,16 +69,6 @@ with tab2:
             st.session_state.df = df
         else:
             st.warning("⚠️ Không có dữ liệu hợp lệ (cần 3 số mỗi bộ).")
-if "df" in st.session_state:
-    df = st.session_state.df
-    st.markdown("### 📥 Xuất file KML tọa độ tính được")
-    kml_str = df_to_kml(df)
-    st.download_button(
-        label="Tải xuống KML (computed_points.kml)",
-        data=kml_str,
-        file_name="computed_points.kml",
-        mime="application/vnd.google-earth.kml+xml"
-    )
 
 # Nếu có kết quả, hiển thị bảng và bản đồ
 if "df" in st.session_state:
