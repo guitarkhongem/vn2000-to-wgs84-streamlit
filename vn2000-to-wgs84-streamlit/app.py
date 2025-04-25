@@ -1,46 +1,5 @@
 import streamlit as st
-st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
-
 import sqlite3
-import pandas as pd
-import math
-# các import khác...
-
-
-# 🔄 Kết nối tới SQLite database (tự tạo nếu chưa có)
-conn = sqlite3.connect("analytics.db", check_same_thread=False)
-c = conn.cursor()
-
-# 🔧 Tạo bảng nếu chưa tồn tại
-c.execute("CREATE TABLE IF NOT EXISTS visits (ts TEXT)")
-c.execute("CREATE TABLE IF NOT EXISTS likes (id INTEGER PRIMARY KEY, count INTEGER)")
-c.execute("INSERT OR IGNORE INTO likes (id, count) VALUES (1, 0)")
-conn.commit()
-
-# ✅ Ghi lượt truy cập mới
-c.execute("INSERT INTO visits (ts) VALUES (datetime('now','localtime'))")
-conn.commit()
-
-# 📊 Đọc số liệu hiện tại
-c.execute("SELECT COUNT(*) FROM visits")
-visit_count = c.fetchone()[0]
-
-c.execute("SELECT count FROM likes WHERE id=1")
-like_count = c.fetchone()[0]
-
-# 📍 Hiển thị ở sidebar
-st.sidebar.markdown("## 📊 Thống kê sử dụng")
-st.sidebar.markdown(f"- 🔍 **Lượt truy cập:** `{visit_count}`")
-st.sidebar.markdown(f"- 👍 **Lượt thích:** `{like_count}`")
-
-# 🔘 Nút like
-if st.sidebar.button("👍 Thích ứng dụng này"):
-    like_count += 1
-    c.execute("UPDATE likes SET count = ? WHERE id = 1", (like_count,))
-    conn.commit()
-    st.sidebar.success("💖 Cảm ơn bạn đã thích!")
-    st.sidebar.markdown(f"- 👍 **Lượt thích:** `{like_count}`")
-
 import pandas as pd
 import math
 import re
@@ -48,10 +7,33 @@ import folium
 from streamlit_folium import st_folium
 from functions import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao
 
-# Cấu hình trang
+# Cấu hình trang – dòng này luôn phải ở đầu tiên
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 
-# Header: logo + tiêu đề
+# Ghi nhận truy cập và lượt thích
+conn = sqlite3.connect("analytics.db", check_same_thread=False)
+c = conn.cursor()
+c.execute("CREATE TABLE IF NOT EXISTS visits (ts TEXT)")
+c.execute("CREATE TABLE IF NOT EXISTS likes (id INTEGER PRIMARY KEY, count INTEGER)")
+c.execute("INSERT OR IGNORE INTO likes (id, count) VALUES (1, 0)")
+conn.commit()
+c.execute("INSERT INTO visits (ts) VALUES (datetime('now','localtime'))")
+conn.commit()
+visit_count = c.execute("SELECT COUNT(*) FROM visits").fetchone()[0]
+like_count = c.execute("SELECT count FROM likes WHERE id=1").fetchone()[0]
+
+# Sidebar thống kê
+st.sidebar.markdown("## 📊 Thống kê sử dụng")
+st.sidebar.markdown(f"- 🔍 **Lượt truy cập:** `{visit_count}`")
+st.sidebar.markdown(f"- 👍 **Lượt thích:** `{like_count}`")
+if st.sidebar.button("👍 Thích ứng dụng này"):
+    like_count += 1
+    c.execute("UPDATE likes SET count = ? WHERE id = 1", (like_count,))
+    conn.commit()
+    st.sidebar.success("💖 Cảm ơn bạn đã thích!")
+    st.sidebar.markdown(f"- 👍 **Lượt thích:** `{like_count}`")
+
+# Header: Logo + Tên
 col1, col2 = st.columns([1, 5], gap="small")
 with col1:
     st.image("logo.jpg", width=80)
@@ -59,19 +41,17 @@ with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
-# Hàm parse đầu vào (hỗ trợ space/tab/newline & STT dạng số hoặc ký tự)
+# Parse dữ liệu đầu vào
 def parse_coordinates(text, group=3):
     tokens = re.split(r'\s+', text.strip())
     coords = []
     i = 0
     while i + group <= len(tokens):
         t0 = tokens[i]
-        # Bỏ qua STT nếu chứa chữ hoặc là số nguyên đứng trước đủ group+1 token
-        if (re.search(r'[A-Za-z]', t0)
-            or ('.' not in t0 and re.fullmatch(r'\d+', t0) and len(tokens) - i >= group+1)):
+        if (re.search(r'[A-Za-z]', t0) or ('.' not in t0 and re.fullmatch(r'\d+', t0) and len(tokens) - i >= group + 1)):
             i += 1
             continue
-        chunk = tokens[i : i+group]
+        chunk = tokens[i: i+group]
         try:
             vals = [float(x.replace(',', '.')) for x in chunk]
             coords.append(vals)
@@ -79,15 +59,11 @@ def parse_coordinates(text, group=3):
         except ValueError:
             i += 1
     return coords
-# 4) Hàm xuất KML cho các điểm tính được (chỉ dành cho kết quả VN2000 → WGS84)
-def df_to_kml(df):
-    """
-    Chỉ nhận DataFrame có cột 'Kinh độ (Lon)' và 'Vĩ độ (Lat)'.
-    Trả về chuỗi KML, còn nếu thiếu cột thì None.
-    """
-    if not {"Kinh độ (Lon)", "Vĩ độ (Lat)"}.issubset(df.columns):
-        return None
 
+# Xuất file KML
+def df_to_kml(df):
+    if not {"Kinh độ (Lon)", "Vĩ độ (Lat)", "H (m)"}.issubset(df.columns):
+        return None
     kml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<kml xmlns="http://www.opengis.net/kml/2.2">',
@@ -106,7 +82,7 @@ def df_to_kml(df):
     kml += ['  </Document>', '</kml>']
     return "\n".join(kml)
 
-# Tabs cho chuyển đổi
+# Tabs: chuyển đổi
 tab1, tab2 = st.tabs(["➡️ VN2000 → WGS84", "⬅️ WGS84 → VN2000"])
 
 with tab1:
@@ -134,27 +110,6 @@ with tab2:
             st.session_state.df = df
         else:
             st.warning("⚠️ Không có dữ liệu hợp lệ (cần 3 số mỗi bộ).")
-# 6) Khi đã có kết quả VN2000→WGS84, cho phép xuất KML; nếu không phải VN→WGS84 thì bỏ qua
-if "df" in st.session_state:
-    df = st.session_state.df
-
-    # Nếu DataFrame có cột Lat/Lon (VN2000→WGS84), mới hiển thị nút download KML
-    kml_str = df_to_kml(df)
-    if kml_str:
-        st.markdown("### 📥 Xuất file KML tọa độ tính được (WGS84)")
-        st.download_button(
-            label="Tải xuống KML (computed_points.kml)",
-            data=kml_str,
-            file_name="computed_points.kml",
-            mime="application/vnd.google-earth.kml+xml"
-        )
-    else:
-        st.info("ℹ️ Chỉ hỗ trợ xuất KML cho kết quả VN2000 → WGS84.")
-
-    # Tiếp theo bạn vẫn có thể vẽ map Folium nếu muốn...
-    st.markdown("### 📍 Bản đồ vệ tinh với các điểm chuyển đổi")
-    # ... rest of your Folium code ...
-
 
 # Nếu có kết quả, hiển thị bảng và bản đồ
 if "df" in st.session_state:
@@ -162,43 +117,41 @@ if "df" in st.session_state:
     st.markdown("### 📊 Kết quả chuyển đổi")
     st.dataframe(df)
 
-    st.markdown("### 📍 Bản đồ vệ tinh với các điểm chuyển đổi")
-    # Tọa độ trung tâm
-    center_lat = float(df["Vĩ độ (Lat)"].mean() if "Vĩ độ (Lat)" in df.columns else df["X (m)"].mean())
-    center_lon = float(df["Kinh độ (Lon)"].mean() if "Kinh độ (Lon)" in df.columns else df["Y (m)"].mean())
+    if {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(df.columns):
+        kml_str = df_to_kml(df)
+        if kml_str:
+            st.markdown("### 📥 Xuất file KML tọa độ tính được (WGS84)")
+            st.download_button("Tải xuống KML", kml_str, "computed_points.kml", "application/vnd.google-earth.kml+xml")
 
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=14,
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-        attr="Esri.WorldImagery"
-    )
-    # Vẽ các điểm
-    if "Vĩ độ (Lat)" in df.columns:
+        st.markdown("### 🛰️ Bản đồ vệ tinh với các điểm tọa độ")
+        center_lat = df["Vĩ độ (Lat)"].mean()
+        center_lon = df["Kinh độ (Lon)"].mean()
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=15,
+            tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            attr="Esri.WorldImagery"
+        )
         for _, row in df.iterrows():
             folium.CircleMarker(
                 location=(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]),
-                radius=3, color="red", fill=True, fill_opacity=0.7
+                radius=3,
+                color="red",
+                fill=True,
+                fill_opacity=0.8
             ).add_to(m)
-    else:
-        for _, row in df.iterrows():
-            folium.CircleMarker(
-                location=(row["X (m)"], row["Y (m)"]),
-                radius=3, color="red", fill=True, fill_opacity=0.7
-            ).add_to(m)
-
-    st_folium(m, width=800, height=500)
+        st_folium(m, width=800, height=500)
 
 # Footer
 st.markdown("---")
 st.markdown(
-    "Tác giả: Trần Trường Sinh  \n"
-    "Số điện thoại: 0917.750.555"
+    "📌 Tác giả: Trần Trường Sinh  \n"
+    "📞 Số điện thoại: 0917.750.555"
 )
 st.markdown(
-    "🔍 **Nguồn công thức**: Bài báo khoa học: **CÔNG TÁC TÍNH CHUYỂN TỌA ĐỘ TRONG CÔNG NGHỆ MÁY BAY...**  \n"
+    "🔍 **Nguồn công thức**: Bài báo khoa học: **CÔNG TÁC TÍNH CHUYỂN TỌA ĐỘ TRONG CÔNG NGHỆ MÁY BAY KHÔNG NGƯỜI LÁI CÓ ĐỊNH VỊ TÂM CHỤP CHÍNH XÁC**  \n"
     "Tác giả: Trần Trung Anh¹, Quách Mạnh Tuấn²  \n"
     "¹ Trường Đại học Mỏ - Địa chất  \n"
     "² Công ty CP Xây dựng và Thương mại QT Miền Bắc  \n"
-    "_HỘI NGHỊ KHOA HỌC QUỐC GIA VỀ CÔNG NGHỆ ĐỊA KHÔNG GIAN TRONG KHOA HỌC TRÁI ĐẤT VÀ MÔI TRƯỜNG_"
+    "_Hội nghị Khoa học Quốc gia Về Công nghệ Địa không gian, 2021_"
 )
