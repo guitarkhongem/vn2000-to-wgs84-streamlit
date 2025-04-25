@@ -37,6 +37,10 @@ def parse_coordinates(text, group=3):
         except ValueError:
             i += 1
     return coords
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of a5cba7f (Update app.py)
 # Tabs cho chuyển đổi
 tab1, tab2 = st.tabs(["➡️ VN2000 → WGS84", "⬅️ WGS84 → VN2000"])
 
