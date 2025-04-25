@@ -1,5 +1,10 @@
 import streamlit as st
+st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
+
 import sqlite3
+import pandas as pd
+import math
+# các import khác...
 
 
 # 🔄 Kết nối tới SQLite database (tự tạo nếu chưa có)
