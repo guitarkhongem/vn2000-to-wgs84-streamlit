@@ -37,7 +37,25 @@ def parse_coordinates(text, group=3):
         except ValueError:
             i += 1
     return coords
-
+# 4) Hàm xuất KML cho các điểm tính được
+def df_to_kml(df):
+    kml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<kml xmlns="http://www.opengis.net/kml/2.2">',
+        '  <Document>',
+        '    <name>Computed Points</name>'
+    ]
+    for idx, row in df.iterrows():
+        kml += [
+            '    <Placemark>',
+            f'      <name>Point {idx+1}</name>',
+            '      <Point>',
+            f'        <coordinates>{row["Kinh độ (Lon)"]},{row["Vĩ độ (Lat)"]},{row["H (m)"]}</coordinates>',
+            '      </Point>',
+            '    </Placemark>'
+        ]
+    kml += ['  </Document>', '</kml>']
+    return "\n".join(kml)
 # Tabs cho chuyển đổi
 tab1, tab2 = st.tabs(["➡️ VN2000 → WGS84", "⬅️ WGS84 → VN2000"])
 
