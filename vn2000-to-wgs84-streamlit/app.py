@@ -41,21 +41,42 @@ with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
+import re
+
 def parse_coordinates(text):
+    """
+    Phân tích dữ liệu tự do, hỗ trợ:
+    - STT/mã ký tự đầu dòng (bỏ qua)
+    - Lọc X, Y, H từ chuỗi tự do (space/tab/newline)
+    - Nếu thiếu H thì gán = 0
+    - Kiểm soát giá trị X (1 triệu–2 triệu), Y (330k–670k)
+    """
     tokens = re.split(r'\s+', text.strip())
     coords = []
     temp = []
+    
     for token in tokens:
+        # Loại bỏ ký tự ngoài số (ví dụ: E00552071 -> 552071)
+        num_part = ''.join(c for c in token if c.isdigit() or c == '.' or c == '-')
+        if not num_part:
+            continue
         try:
-            val = float(token.replace(',', '.'))
+            val = float(num_part)
             temp.append(val)
-            if len(temp) == 3:
-                coords.append(temp)
+            # Gom đủ 2 hoặc 3 giá trị sẽ xét
+            if len(temp) == 2 or len(temp) == 3:
+                x = temp[0]
+                y = temp[1]
+                h = temp[2] if len(temp) == 3 else 0.0
+                # Kiểm tra khoảng X, Y hợp lệ
+                if 1_000_000 <= x <= 2_000_000 and 330_000 <= y <= 670_000:
+                    coords.append((x, y, h))
                 temp = []
         except ValueError:
-            # Token không phải số (ví dụ STT: 51, 52, A10...) thì bỏ qua
             continue
+    
     return coords
+
 
 # Xuất file KML
 def df_to_kml(df):
