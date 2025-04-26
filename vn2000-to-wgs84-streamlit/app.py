@@ -41,51 +41,22 @@ with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
-import re
-
-import re
-
 def parse_coordinates(text):
-    """
-    Phân tích chuỗi nhập thành danh sách (x, y, h).
-    Hỗ trợ dữ liệu:
-    - Dạng 3 số X Y H
-    - Dạng 2 số X Y (gán H=0)
-    - Dòng chứa số, tự động bỏ STT và ghép
-    """
-    lines = text.strip().splitlines()
+    tokens = re.split(r'\s+', text.strip())
     coords = []
-    buffer = []
-
-    for line in lines:
-        # Tách tất cả số trong dòng
-        tokens = re.findall(r'\d+\.\d+|\d+', line)
-        nums = [float(t) for t in tokens]
-
-        if not nums:
-            continue  # dòng không có số, bỏ qua
-
-        if len(nums) >= 3:
-            x, y, h = nums[:3]
-        elif len(nums) == 2:
-            x, y = nums
-            h = 0
-        elif len(nums) == 1:
-            buffer.append(nums[0])
-            if len(buffer) == 2:
-                x, y = buffer
-                h = 0
-                buffer.clear()
-            else:
-                continue
-        else:
+    temp = []
+    for token in tokens:
+        try:
+            val = float(token.replace(',', '.'))
+            temp.append(val)
+            if len(temp) == 3:
+                coords.append(temp)
+                temp = []
+        except ValueError:
+            # Token không phải số (ví dụ STT: 51, 52, A10...) thì bỏ qua
             continue
-
-        # Kiểm tra giới hạn tọa độ
-        if (1000000 <= x <= 2000000) and (330000 <= y <= 670000) and (-1000 <= h <= 3200):
-            coords.append((x, y, h))
-
     return coords
+
 
 
 
