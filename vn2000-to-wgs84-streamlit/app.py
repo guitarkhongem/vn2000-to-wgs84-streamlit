@@ -49,34 +49,36 @@ def parse_coordinates(text):
     temp = []
 
     for line in lines:
-        tokens = re.findall(r'\d+\.\d+|\d+', line)  # Tách toàn bộ số ra
+        tokens = re.findall(r'\d+\.\d+|\d+', line)  # tìm số thực và số nguyên
         if not tokens:
             continue
-        
+
         nums = list(map(float, tokens))
-        
-        if len(nums) == 3:  # X Y H đầy đủ
+
+        if len(nums) == 3:
             x, y, h = nums
-        elif len(nums) == 2:  # X Y (thiếu H)
+            temp.clear()
+        elif len(nums) == 2:
             x, y = nums
             h = 0
+            temp.clear()
         elif len(nums) == 1:
             temp.append(nums[0])
             if len(temp) == 2:
-                # Nếu thu được 2 số từ 2 dòng thì ghép lại thành (X, Y, H=0)
                 x, y = temp
                 h = 0
-                temp = []
+                temp.clear()
             else:
                 continue
         else:
             continue
 
-        # Kiểm tra giới hạn hợp lệ:
+        # Kiểm tra các giá trị hợp lệ
         if (1000000 <= x <= 2000000) and (330000 <= y <= 670000) and (-1000 <= h <= 3200):
             coords.append((x, y, h))
 
     return coords
+
 
 
 
