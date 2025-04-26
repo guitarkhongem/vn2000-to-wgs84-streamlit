@@ -1,90 +1,132 @@
 import streamlit as st
 import pandas as pd
-import math
 import re
+import math
 import folium
 from streamlit_folium import st_folium
-from functions import vn2000_to_wgs84_baibao
-import analytics
+import analytics  # File analytics.py
+from functions import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao
 
-# Set page config
-st.set_page_config(page_title="VN2000 ⇄ WGS84", layout="wide")
+# 🏁 Cấu hình trang
+st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 
-conn, c = analytics.init_db()
-analytics.log_visit(c, conn)
+# 🖼️ Đặt background
+def set_background():
+    with open("background.png", "rb") as f:
+        data = f.read()
+    encoded = data.hex()
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background: url('data:image/png;base64,{data.hex()}');
+            background-size: cover;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+set_background()
 
-# Giao diện
-col1, col2 = st.columns([1,5])
+# 🏷️ Header: Logo + Tiêu đề
+col1, col2 = st.columns([1, 5], gap="small")
 with col1:
     st.image("logo.jpg", width=80)
 with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
+# 📊 Analytics (lượt view và like)
+analytics.log_visit()
+analytics.display_sidebar()
+
+# 🛠️ Hàm Parse tọa độ
 def parse_coordinates(text):
     tokens = re.split(r'\s+', text.strip())
     coords = []
-    i = 0
-    while i < len(tokens):
-        t0 = tokens[i]
-        # Nếu chứa chữ hoặc là số dạng E00552071 thì tách
-        if re.match(r'^[A-Za-z]+(\d+)$', t0):
-            number = re.findall(r'\d+', t0)[0]
-            coords.append(int(number))
-            i += 1
-            continue
-        try:
-            val = float(t0.replace(",", "."))
-            coords.append(val)
-            i += 1
-        except:
-            i += 1
+    group = []
+    for token in tokens:
+        token = token.replace(",", ".")  # Chuyển dấu phẩy thành chấm
+        if re.match(r"^[EN]?\d{8,9}$", token):  # Nếu là dạng E00552071
+            num = float(re.sub(r"[A-Za-z]", "", token))
+            group.append(num)
+        elif re.match(r"^\d+(\.\d+)?$", token):  # Nếu là số
+            group.append(float(token))
+        else:
+            continue  # Bỏ qua token STT hoặc ký tự
 
-    result = []
-    i = 0
-    while i + 1 < len(coords):
-        x = coords[i]
-        y = coords[i+1]
-        h = coords[i+2] if i+2 < len(coords) else 0
-        if 1e6 < x < 2e6 and 330000 < y < 670000 and -1000 < h < 3200:
-            result.append((x, y, h))
-        i += 3
-    return result
+        if len(group) == 2:  # Nếu đã có X và Y
+            group.append(0)  # Tự gán h=0
+            coords.append(group)
+            group = []
+        elif len(group) == 3:  # Nếu đủ X, Y, h
+            coords.append(group)
+            group = []
+    # Lọc theo điều kiện X, Y hợp lệ
+    coords = [
+        (x, y, h) for x, y, h in coords
+        if 1_000_000 <= x <= 2_000_000 and 330_000 <= y <= 670_000
+    ]
+    return coords
 
-st.subheader("🔢 Nhập tọa độ (space, tab hoặc enter):")
-text_input = st.text_area("", height=250)
-if st.button("🛰️ Chuyển đổi"):
-    parsed = parse_coordinates(text_input)
-    if parsed:
-        df = pd.DataFrame([vn2000_to_wgs84_baibao(x, y, h, 106.25) for x, y, h in parsed],
-                          columns=["Vĩ độ (Lat)", "Kinh độ (Lon)"])
-        st.success("🎯 Kết quả:")
-        st.dataframe(df)
+# 🛫 Tabs chuyển đổi
+tab1, tab2 = st.tabs(["➡️ VN2000 → WGS84", "⬅️ WGS84 → VN2000"])
 
-        # Map
+with tab1:
+    st.markdown("#### 🔢 Nhập tọa độ VN2000 (X Y [H]) – Space, Tab, Enter, STT được phép:")
+    in_vn = st.text_area("", height=150, key="vn_in")
+    lon0_vn = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_vn")
+    if st.button("🔁 Chuyển sang WGS84", key="to_wgs84"):
+        parsed = parse_coordinates(in_vn)
+        if parsed:
+            df = pd.DataFrame(
+                [vn2000_to_wgs84_baibao(x, y, h, lon0_vn) for x, y, h in parsed],
+                columns=["Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
+            )
+            st.session_state.df = df
+        else:
+            st.warning("⚠️ Không có dữ liệu hợp lệ (cần X Y [H]).")
+
+with tab2:
+    st.markdown("#### 🔢 Nhập tọa độ WGS84 (Lat Lon [H]) – Space, Tab, Enter, STT được phép:")
+    in_wg = st.text_area("", height=150, key="wg_in")
+    lon0_wg = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_wg")
+    if st.button("🔁 Chuyển sang VN2000", key="to_vn2000"):
+        parsed = parse_coordinates(in_wg)
+        if parsed:
+            df = pd.DataFrame(
+                [wgs84_to_vn2000_baibao(lat, lon, h, lon0_wg) for lat, lon, h in parsed],
+                columns=["X (m)", "Y (m)", "h (m)"]
+            )
+            st.session_state.df = df
+        else:
+            st.warning("⚠️ Không có dữ liệu hợp lệ (cần Lat Lon [H]).")
+
+# 📍 Nếu có kết quả
+if "df" in st.session_state:
+    df = st.session_state.df
+    st.markdown("### 📊 Kết quả chuyển đổi")
+    st.dataframe(df)
+
+    # Nếu Lat/Lon thì vẽ bản đồ
+    if {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(df.columns):
+        center_lat = df["Vĩ độ (Lat)"].mean()
+        center_lon = df["Kinh độ (Lon)"].mean()
         m = folium.Map(
-            location=[df["Vĩ độ (Lat)"].mean(), df["Kinh độ (Lon)"].mean()],
+            location=[center_lat, center_lon],
             zoom_start=14,
             tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
             attr="Esri.WorldImagery"
         )
         for _, row in df.iterrows():
-            folium.CircleMarker(location=(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]),
-                                radius=3, color="red", fill=True, fill_opacity=0.7).add_to(m)
-        st_folium(m, width=900, height=600)
-    else:
-        st.warning("⚠️ Không có dữ liệu hợp lệ!")
-
-# Sidebar
-visits, likes = analytics.get_stats(c)
-st.sidebar.markdown(f"👁️ Lượt xem: **{visits}**")
-st.sidebar.markdown(f"❤️ Lượt thích: **{likes}**")
-if st.sidebar.button("👍 Thích ứng dụng"):
-    analytics.increment_like(c, conn)
-    st.experimental_rerun()
-
-st.markdown("---")
-st.markdown("Tác giả: **Trần Trường Sinh** | 📞 0917.750.555")
+            folium.CircleMarker(
+                location=(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]),
+                radius=3,
+                color="red",
+                fill=True,
+                fill_opacity=0.8
+            ).add_to(m)
+        st_folium(m, width=900, height=500)
 
 
 # Footer
