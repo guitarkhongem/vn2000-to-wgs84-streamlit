@@ -85,6 +85,7 @@ def parse_coordinates(text):
 
 
 
+
 # Xuất file KML
 def df_to_kml(df):
     if not {"Kinh độ (Lon)", "Vĩ độ (Lat)", "H (m)"}.issubset(df.columns):
