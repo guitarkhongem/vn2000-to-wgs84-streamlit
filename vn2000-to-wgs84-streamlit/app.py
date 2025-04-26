@@ -45,37 +45,46 @@ import re
 
 def parse_coordinates(text):
     """
-    Phân tích chuỗi nhập, tự động nhận dạng X, Y, h từ dữ liệu kiểu tự do.
-    Bỏ chữ cái, chỉ giữ lại số.
-    Nếu thiếu h, tự gán h = 0.
-    Chặn kiểm tra giá trị X, Y hợp lệ.
+    Phân tích chuỗi nhập, tự động nhận dạng X, Y, H từ dữ liệu tự do.
+    Bỏ STT/mã điểm, nhận dạng X, Y, H đúng.
+    Nếu thiếu H thì gán H=0.
+    Kiểm tra giá trị X, Y hợp lệ.
     """
     tokens = re.split(r'[\s\t\n]+', text.strip())
     numbers = []
 
     for token in tokens:
-        # Bỏ ký tự chữ, chỉ giữ số
+        # Bỏ chữ cái, chỉ giữ số
         num_part = ''.join(re.findall(r'\d+', token))
         if num_part:
             try:
                 num = float(num_part)
-                numbers.append(num)
+                numbers.append((token, num))
             except:
                 continue
 
     coords = []
     i = 0
     while i < len(numbers):
-        if i + 1 < len(numbers):
-            x = numbers[i+1]
-            y = numbers[i]
-            h = 0  # mặc định
-            if i + 2 < len(numbers):
-                h = numbers[i+2]
-                if -1000 <= h <= 3200:
-                    i += 1  # có h hợp lệ thì dịch thêm 1 bước
+        token, value = numbers[i]
+        # Nếu token không chứa '.' và là số nguyên => coi là STT, bỏ qua
+        if '.' not in token and isinstance(value, float) and value.is_integer():
+            i += 1
+            continue
 
-            # Kiểm tra X, Y hợp lệ
+        # Nếu còn đủ số lượng
+        if i + 1 < len(numbers):
+            x = numbers[i][1]
+            y = numbers[i+1][1]
+            h = 0
+            if i + 2 < len(numbers):
+                h = numbers[i+2][1]
+                if not (-1000 <= h <= 3200):
+                    h = 0  # Nếu h không hợp lệ thì set 0
+                else:
+                    i += 1  # Nếu có H hợp lệ thì dịch thêm 1
+
+            # Kiểm tra điều kiện tọa độ
             if (330000 <= y <= 670000) and (1000000 <= x <= 2000000):
                 coords.append((x, y, h))
                 i += 2
@@ -85,6 +94,7 @@ def parse_coordinates(text):
             break
 
     return coords
+
 
 
 
