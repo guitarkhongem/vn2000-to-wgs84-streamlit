@@ -45,50 +45,47 @@ import re
 
 def parse_coordinates(text):
     """
-    Parse input text into list of [X, Y, H] with validations.
-    - X: 7 chữ số (1,800,000 ~ 2,000,000)
-    - Y: 6 chữ số (330,000 ~ 670,000)
-    - H: tự gán 0 nếu thiếu
+    Phân tích chuỗi nhập, tự động nhận dạng X, Y, h từ dữ liệu kiểu tự do.
+    Bỏ chữ cái, chỉ giữ lại số.
+    Nếu thiếu h, tự gán h = 0.
+    Chặn kiểm tra giá trị X, Y hợp lệ.
     """
-    tokens = re.findall(r'\d+', text)  # Tìm tất cả số
+    tokens = re.split(r'[\s\t\n]+', text.strip())
+    numbers = []
+
+    for token in tokens:
+        # Bỏ ký tự chữ, chỉ giữ số
+        num_part = ''.join(re.findall(r'\d+', token))
+        if num_part:
+            try:
+                num = float(num_part)
+                numbers.append(num)
+            except:
+                continue
+
     coords = []
     i = 0
-    while i < len(tokens) - 1:
-        x, y = None, None
+    while i < len(numbers):
+        if i + 1 < len(numbers):
+            x = numbers[i+1]
+            y = numbers[i]
+            h = 0  # mặc định
+            if i + 2 < len(numbers):
+                h = numbers[i+2]
+                if -1000 <= h <= 3200:
+                    i += 1  # có h hợp lệ thì dịch thêm 1 bước
 
-        # Kiểm tra thứ tự: X7 - Y6 hoặc Y6 - X7
-        if len(tokens[i]) == 7 and len(tokens[i+1]) == 6:
-            x = int(tokens[i])
-            y = int(tokens[i+1])
-            i += 2
-        elif len(tokens[i]) == 6 and len(tokens[i+1]) == 7:
-            y = int(tokens[i])
-            x = int(tokens[i+1])
-            i += 2
+            # Kiểm tra X, Y hợp lệ
+            if (330000 <= y <= 670000) and (1000000 <= x <= 2000000):
+                coords.append((x, y, h))
+                i += 2
+            else:
+                i += 1
         else:
-            i += 1
-            continue
-
-        # Kiểm tra giá trị X, Y
-        if not (330000 <= y <= 670000):
-            continue
-        if not (1700000 <= x <= 1900000):
-            continue
-
-        # Độ cao H
-        h = 0
-        if i < len(tokens):
-            try:
-                h_val = int(tokens[i])
-                if -1000 <= h_val <= 3200:
-                    h = h_val
-                    i += 1
-            except:
-                pass
-
-        coords.append([x, y, h])
+            break
 
     return coords
+
 
 
 
