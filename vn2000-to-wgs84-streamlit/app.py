@@ -43,43 +43,41 @@ with col2:
 
 import re
 
-def parse_coordinates(text, group=3):
-    tokens = re.split(r'[\s\t\n]+', text.strip())
+def parse_coordinates(text):
+    lines = text.strip().splitlines()
     coords = []
-    i = 0
+    temp = []
 
-    while i < len(tokens):
-        t0 = tokens[i]
-
-        # Nếu token có chữ cái kèm số (ví dụ E00552071), tách số ra
-        if re.search(r'[A-Za-z]', t0) and re.search(r'\d', t0):
-            t0 = re.sub(r'\D', '', t0)  # Xóa hết chữ, giữ lại số
-
-        try:
-            x = float(t0.replace(',', '.'))
-            y = float(tokens[i+1].replace(',', '.'))
-
-            # Nếu token tiếp theo cũng là chữ+số, tách luôn
-            if re.search(r'[A-Za-z]', tokens[i+1]) and re.search(r'\d', tokens[i+1]):
-                y = float(re.sub(r'\D', '', tokens[i+1]))
-
-            if i + 2 < len(tokens):
-                h = float(tokens[i+2].replace(',', '.'))
-                if not (-1000 <= h <= 3200):
-                    h = 0
+    for line in lines:
+        tokens = re.findall(r'\d+\.\d+|\d+', line)  # Tách toàn bộ số ra
+        if not tokens:
+            continue
+        
+        nums = list(map(float, tokens))
+        
+        if len(nums) == 3:  # X Y H đầy đủ
+            x, y, h = nums
+        elif len(nums) == 2:  # X Y (thiếu H)
+            x, y = nums
+            h = 0
+        elif len(nums) == 1:
+            temp.append(nums[0])
+            if len(temp) == 2:
+                # Nếu thu được 2 số từ 2 dòng thì ghép lại thành (X, Y, H=0)
+                x, y = temp
+                h = 0
+                temp = []
             else:
-                h = 0  # Thiếu H thì gán 0
+                continue
+        else:
+            continue
 
-            # Kiểm tra hợp lệ
-            if (1000000 <= x <= 2000000) and (330000 <= y <= 670000):
-                coords.append((x, y, h))
-                i += 3
-            else:
-                i += 1
-        except (ValueError, IndexError):
-            i += 1
+        # Kiểm tra giới hạn hợp lệ:
+        if (1000000 <= x <= 2000000) and (330000 <= y <= 670000) and (-1000 <= h <= 3200):
+            coords.append((x, y, h))
 
     return coords
+
 
 
 
