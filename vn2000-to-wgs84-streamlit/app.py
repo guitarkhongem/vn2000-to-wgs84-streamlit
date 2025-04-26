@@ -127,16 +127,15 @@ with tab1:
     in_vn = st.text_area("", height=120, key="vn_in")
     lon0_vn = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_vn")
 if st.button("🔁 Chuyển WGS84"):
+    if in_vn.strip():
     parsed = parse_coordinates(in_vn)
     if not parsed:
         st.warning("⚠️ Không có dữ liệu hợp lệ (cần ít nhất X Y).")
     else:
         results = [vn2000_to_wgs84_baibao(x, y, h, lon0_vn) for x, y, h in parsed]
-        if results:
-            df = pd.DataFrame(results, columns=["Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"])
-            st.session_state.df = df
-        else:
-            st.warning("⚠️ Không có dữ liệu hợp lệ (cần 3 số mỗi bộ).")
+        df = pd.DataFrame(results, columns=["Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"])
+        st.session_state.df = df
+
 
 with tab2:
     st.markdown("#### 🔢 Nhập tọa độ WGS84 (Lat Lon H – space/tab/newline hoặc kèm STT):")
