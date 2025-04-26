@@ -43,57 +43,47 @@ with col2:
 
 import re
 
-def parse_coordinates(text):
+def parse_coordinates(text, group=3):
     """
-    Phân tích chuỗi nhập, tự động nhận dạng X, Y, H từ dữ liệu tự do.
-    Bỏ STT/mã điểm, nhận dạng X, Y, H đúng.
-    Nếu thiếu H thì gán H=0.
-    Kiểm tra giá trị X, Y hợp lệ.
+    Chuẩn: phân tích dữ liệu nhập tự do theo group 3: X, Y, H.
+    - Bỏ qua STT: chữ hoặc số nguyên.
+    - Dấu cách, tab, xuống dòng đều chấp nhận.
+    - Nếu thiếu H thì gán H=0.
+    - X: 1.000.000 -> 2.000.000; Y: 330.000 -> 670.000.
     """
     tokens = re.split(r'[\s\t\n]+', text.strip())
-    numbers = []
-
-    for token in tokens:
-        # Bỏ chữ cái, chỉ giữ số
-        num_part = ''.join(re.findall(r'\d+', token))
-        if num_part:
-            try:
-                num = float(num_part)
-                numbers.append((token, num))
-            except:
-                continue
-
     coords = []
     i = 0
-    while i < len(numbers):
-        token, value = numbers[i]
-        # Nếu token không chứa '.' và là số nguyên => coi là STT, bỏ qua
-        if '.' not in token and isinstance(value, float) and value.is_integer():
+
+    while i < len(tokens):
+        t0 = tokens[i]
+        # Nếu token là STT: số nguyên hoặc có chữ cái -> bỏ qua
+        if re.search(r'[A-Za-z]', t0) or (t0.isdigit() and len(tokens) - i > group):
             i += 1
             continue
 
-        # Nếu còn đủ số lượng
-        if i + 1 < len(numbers):
-            x = numbers[i][1]
-            y = numbers[i+1][1]
-            h = 0
-            if i + 2 < len(numbers):
-                h = numbers[i+2][1]
-                if not (-1000 <= h <= 3200):
-                    h = 0  # Nếu h không hợp lệ thì set 0
-                else:
-                    i += 1  # Nếu có H hợp lệ thì dịch thêm 1
+        try:
+            x = float(tokens[i].replace(',', '.'))
+            y = float(tokens[i+1].replace(',', '.'))
 
-            # Kiểm tra điều kiện tọa độ
-            if (330000 <= y <= 670000) and (1000000 <= x <= 2000000):
+            if i + 2 < len(tokens):
+                h = float(tokens[i+2].replace(',', '.'))
+                if not (-1000 <= h <= 3200):  # H ngoài giới hạn
+                    h = 0
+            else:
+                h = 0  # Nếu thiếu H
+
+            # Kiểm tra hợp lệ X Y
+            if (1000000 <= x <= 2000000) and (330000 <= y <= 670000):
                 coords.append((x, y, h))
-                i += 2
+                i += 3
             else:
                 i += 1
-        else:
-            break
+        except (ValueError, IndexError):
+            i += 1
 
     return coords
+
 
 
 
