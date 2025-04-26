@@ -122,7 +122,7 @@ with tab1:
     in_vn = st.text_area("", height=120, key="vn_in")
     lon0_vn = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_vn")
     if st.button("🔁 Chuyển WGS84"):
-        parsed = parse_coordinates(in_vn, group=3)
+        parsed = parse_coordinates(in_vn)
         results = [vn2000_to_wgs84_baibao(x, y, z, lon0_vn) for x, y, z in parsed]
         if results:
             df = pd.DataFrame(results, columns=["Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"])
@@ -135,7 +135,7 @@ with tab2:
     in_wg = st.text_area("", height=120, key="wg_in")
     lon0_wg = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_wg")
     if st.button("🔁 Chuyển VN2000"):
-        parsed = parse_coordinates(in_wg, group=3)
+        parsed = parse_coordinates(in_wg)
         results = [wgs84_to_vn2000_baibao(lat, lon, h, lon0_wg) for lat, lon, h in parsed]
         if results:
             df = pd.DataFrame(results, columns=["X (m)", "Y (m)", "h (m)"])
