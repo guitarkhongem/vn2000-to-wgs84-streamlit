@@ -44,36 +44,33 @@ with col2:
 import re
 
 def parse_coordinates(text, group=3):
-    """
-    Chuẩn: phân tích dữ liệu nhập tự do theo group 3: X, Y, H.
-    - Bỏ qua STT: chữ hoặc số nguyên.
-    - Dấu cách, tab, xuống dòng đều chấp nhận.
-    - Nếu thiếu H thì gán H=0.
-    - X: 1.000.000 -> 2.000.000; Y: 330.000 -> 670.000.
-    """
     tokens = re.split(r'[\s\t\n]+', text.strip())
     coords = []
     i = 0
 
     while i < len(tokens):
         t0 = tokens[i]
-        # Nếu token là STT: số nguyên hoặc có chữ cái -> bỏ qua
-        if re.search(r'[A-Za-z]', t0) or (t0.isdigit() and len(tokens) - i > group):
-            i += 1
-            continue
+
+        # Nếu token có chữ cái kèm số (ví dụ E00552071), tách số ra
+        if re.search(r'[A-Za-z]', t0) and re.search(r'\d', t0):
+            t0 = re.sub(r'\D', '', t0)  # Xóa hết chữ, giữ lại số
 
         try:
-            x = float(tokens[i].replace(',', '.'))
+            x = float(t0.replace(',', '.'))
             y = float(tokens[i+1].replace(',', '.'))
+
+            # Nếu token tiếp theo cũng là chữ+số, tách luôn
+            if re.search(r'[A-Za-z]', tokens[i+1]) and re.search(r'\d', tokens[i+1]):
+                y = float(re.sub(r'\D', '', tokens[i+1]))
 
             if i + 2 < len(tokens):
                 h = float(tokens[i+2].replace(',', '.'))
-                if not (-1000 <= h <= 3200):  # H ngoài giới hạn
+                if not (-1000 <= h <= 3200):
                     h = 0
             else:
-                h = 0  # Nếu thiếu H
+                h = 0  # Thiếu H thì gán 0
 
-            # Kiểm tra hợp lệ X Y
+            # Kiểm tra hợp lệ
             if (1000000 <= x <= 2000000) and (330000 <= y <= 670000):
                 coords.append((x, y, h))
                 i += 3
@@ -83,6 +80,7 @@ def parse_coordinates(text, group=3):
             i += 1
 
     return coords
+
 
 
 
