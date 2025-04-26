@@ -46,14 +46,17 @@ import re
 def parse_coordinates(text):
     """
     Parse input text into list of [X, Y, H] with validations.
+    - X: 7 chữ số (1,800,000 ~ 2,000,000)
+    - Y: 6 chữ số (330,000 ~ 670,000)
+    - H: tự gán 0 nếu thiếu
     """
-    tokens = re.findall(r'\d+', text)  # Tìm tất cả số nguyên
+    tokens = re.findall(r'\d+', text)  # Tìm tất cả số
     coords = []
     i = 0
     while i < len(tokens) - 1:
         x, y = None, None
 
-        # Tìm 7 số và 6 số
+        # Kiểm tra thứ tự: X7 - Y6 hoặc Y6 - X7
         if len(tokens[i]) == 7 and len(tokens[i+1]) == 6:
             x = int(tokens[i])
             y = int(tokens[i+1])
@@ -66,27 +69,27 @@ def parse_coordinates(text):
             i += 1
             continue
 
-        # Kiểm tra khoảng hợp lệ
+        # Kiểm tra giá trị X, Y
         if not (330000 <= y <= 670000):
-            continue  # Tung độ không hợp lệ
-        if not (700000 <= x <= 2000000):
-            continue  # Hoành độ bất thường
+            continue
+        if not (1700000 <= x <= 1900000):
+            continue
 
-        # Kiểm tra độ cao nếu có
+        # Độ cao H
         h = 0
         if i < len(tokens):
-            if len(tokens[i]) <= 5:  # Độ cao có thể chỉ 2-5 số
-                try:
-                    h_val = int(tokens[i])
-                    if -1000 <= h_val <= 3200:
-                        h = h_val
-                        i += 1
-                except:
-                    pass
+            try:
+                h_val = int(tokens[i])
+                if -1000 <= h_val <= 3200:
+                    h = h_val
+                    i += 1
+            except:
+                pass
 
         coords.append([x, y, h])
 
     return coords
+
 
 
 # Xuất file KML
