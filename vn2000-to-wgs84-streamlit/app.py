@@ -41,33 +41,57 @@ analytics.log_visit()
 analytics.display_sidebar()
 
 # 🛠️ Hàm Parse tọa độ
+import re
+
 def parse_coordinates(text):
     tokens = re.split(r'\s+', text.strip())
     coords = []
-    group = []
-    for token in tokens:
-        token = token.replace(",", ".")  # Chuyển dấu phẩy thành chấm
-        if re.match(r"^[EN]?\d{8,9}$", token):  # Nếu là dạng E00552071
-            num = float(re.sub(r"[A-Za-z]", "", token))
-            group.append(num)
-        elif re.match(r"^\d+(\.\d+)?$", token):  # Nếu là số
-            group.append(float(token))
-        else:
-            continue  # Bỏ qua token STT hoặc ký tự
+    i = 0
 
-        if len(group) == 2:  # Nếu đã có X và Y
-            group.append(0)  # Tự gán h=0
-            coords.append(group)
-            group = []
-        elif len(group) == 3:  # Nếu đủ X, Y, h
-            coords.append(group)
-            group = []
-    # Lọc theo điều kiện X, Y hợp lệ
-    coords = [
-        (x, y, h) for x, y, h in coords
-        if 1_000_000 <= x <= 2_000_000 and 330_000 <= y <= 670_000
-    ]
-    return coords
+    while i < len(tokens):
+        # Nếu token chứa chữ, cố gắng bóc tách số
+        token = tokens[i]
+        number = re.sub(r'\D', '', token)  # Xóa ký tự không phải số
+
+        if number != '' and len(number) >= 6:
+            num = float(number)
+            if 330000 <= num <= 670000 or 1000000 <= num <= 2000000:
+                coords.append(num)
+                i += 1
+                continue
+
+        # Nếu token là số thực bình thường
+        try:
+            val = float(token.replace(',', '.'))
+            coords.append(val)
+            i += 1
+        except ValueError:
+            i += 1
+
+    # Gom thành từng bộ (X, Y, H)
+    parsed = []
+    i = 0
+    while i < len(coords) - 1:
+        x = coords[i]
+        y = coords[i+1]
+
+        # Kiểm tra X, Y hợp lệ
+        if not (1000000 <= x <= 2000000 and 330000 <= y <= 670000):
+            i += 1
+            continue
+
+        # Nếu còn H thì lấy, không thì gán 0
+        if i+2 < len(coords):
+            h = coords[i+2]
+            i += 3
+        else:
+            h = 0
+            i += 2
+
+        parsed.append((x, y, h))
+
+    return parsed
+
 
 # 🛫 Tabs chuyển đổi
 tab1, tab2 = st.tabs(["➡️ VN2000 → WGS84", "⬅️ WGS84 → VN2000"])
