@@ -150,7 +150,7 @@ if "df" in st.session_state:
                 fill=True,
                 fill_opacity=0.8
             ).add_to(m)
-        st_folium(m, width=900, height=500)
+        st_folium(m, width="100%", height=500)
 
 
 # Footer
