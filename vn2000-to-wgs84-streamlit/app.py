@@ -1,156 +1,204 @@
 import streamlit as st
 import pandas as pd
-import re
 import math
+import re
 import folium
 from streamlit_folium import st_folium
-import analytics  # File analytics.py
-from functions import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao
+import analytics  # file thống kê lượt truy cập
+from functions import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao  # file thuật toán
 
-# 🏁 Cấu hình trang
+# ✅ Cấu hình page
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 
-# 🖼️ Đặt background
-def set_background():
-    with open("background.png", "rb") as f:
-        data = f.read()
-    encoded = data.hex()
-    st.markdown(
-        f"""
-        <style>
-        .stApp {{
-            background: url('data:image/png;base64,{data.hex()}');
-            background-size: cover;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-set_background()
+# ✅ Ghi nhận lượt truy cập
+analytics.log_visit()
 
-# 🏷️ Header: Logo + Tiêu đề
-col1, col2 = st.columns([1, 5], gap="small")
+# ✅ Set background
+def set_background(png_file):
+    with open(png_file, "rb") as f:
+        data = f.read()
+    b64 = data.encode("base64").decode()
+    page_bg_img = f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{b64}");
+        background-size: cover;
+    }}
+    </style>
+    """
+    st.markdown(page_bg_img, unsafe_allow_html=True)
+
+set_background("background.png")  # file nền bạn đã upload
+
+# ✅ Header
+col1, col2 = st.columns([1, 5])
 with col1:
-    st.image("logo.jpg", width=80)
+    st.image("logo.jpg", width=90)
 with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
-# 📊 Analytics (lượt view và like)
-analytics.log_visit()
-analytics.display_sidebar()
-
-# 🛠️ Hàm Parse tọa độ
-import re
-
+# ✅ Hàm parse đầu vào
 def parse_coordinates(text):
     tokens = re.split(r'\s+', text.strip())
     coords = []
     i = 0
-
     while i < len(tokens):
-        # Nếu token chứa chữ, cố gắng bóc tách số
         token = tokens[i]
-        number = re.sub(r'\D', '', token)  # Xóa ký tự không phải số
 
-        if number != '' and len(number) >= 6:
-            num = float(number)
-            if 330000 <= num <= 670000 or 1000000 <= num <= 2000000:
-                coords.append(num)
-                i += 1
-                continue
+        # Nhận dạng kiểu mã hiệu đặc biệt: E00552071 hoặc N01839564
+        if re.fullmatch(r"[EN]\d{8}", token):
+            prefix = token[0]
+            number = token[1:]
+            if prefix == "E":
+                y = int(number)
+            else:
+                x = int(number)
 
-        # Nếu token là số thực bình thường
-        try:
-            val = float(token.replace(',', '.'))
-            coords.append(val)
-            i += 1
-        except ValueError:
-            i += 1
+            # Tìm tiếp đối xứng nếu có
+            if i+1 < len(tokens) and re.fullmatch(r"[EN]\d{8}", tokens[i+1]):
+                next_prefix = tokens[i+1][0]
+                next_number = tokens[i+1][1:]
+                if next_prefix == "E":
+                    y = int(next_number)
+                else:
+                    x = int(next_number)
+                i += 1  # ăn thêm 1 token
 
-    # Gom thành từng bộ (X, Y, H)
-    parsed = []
-    i = 0
-    while i < len(coords) - 1:
-        x = coords[i]
-        y = coords[i+1]
-
-        # Kiểm tra X, Y hợp lệ
-        if not (1000000 <= x <= 2000000 and 330000 <= y <= 670000):
+            coords.append([float(x), float(y), 0])  # Gán h=0
             i += 1
             continue
 
-        # Nếu còn H thì lấy, không thì gán 0
-        if i+2 < len(coords):
-            h = coords[i+2]
-            i += 3
+        # Kiểu nhập thông thường: 1839564 552071 hoặc 1839629.224 552222.889 414.540
+        chunk = []
+        for _ in range(3):
+            if i < len(tokens):
+                try:
+                    num = float(tokens[i].replace(",", "."))
+                    chunk.append(num)
+                except:
+                    break
+                i += 1
+        if len(chunk) == 2:
+            chunk.append(0.0)  # thiếu h thì gán h=0
+        if len(chunk) == 3:
+            coords.append(chunk)
         else:
-            h = 0
-            i += 2
+            i += 1  # nhảy tới nếu không hợp lệ
 
-        parsed.append((x, y, h))
+    # ✅ Lọc theo điều kiện hợp lệ X, Y
+    filtered = []
+    for x, y, h in coords:
+        if 1_000_000 <= x <= 2_000_000 and 330_000 <= y <= 670_000 and -1000 <= h <= 3200:
+            filtered.append([x, y, h])
+    return filtered
 
-    return parsed
+# ✅ Hàm export ra KML
+def df_to_kml(df):
+    if not {"Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"}.issubset(df.columns):
+        return None
+    kml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<kml xmlns="http://www.opengis.net/kml/2.2">',
+        '  <Document>',
+        '    <name>Computed Points (WGS84)</name>'
+    ]
+    for idx, row in df.iterrows():
+        kml += [
+            '    <Placemark>',
+            f'      <name>Point {idx+1}</name>',
+            '      <Point>',
+            f'        <coordinates>{row["Kinh độ (Lon)"]},{row["Vĩ độ (Lat)"]},{row["H (m)"]}</coordinates>',
+            '      </Point>',
+            '    </Placemark>'
+        ]
+    kml += ['  </Document>', '</kml>']
+    return "\n".join(kml)
 
-
-# 🛫 Tabs chuyển đổi
+# ✅ Tabs
 tab1, tab2 = st.tabs(["➡️ VN2000 → WGS84", "⬅️ WGS84 → VN2000"])
 
 with tab1:
-    st.markdown("#### 🔢 Nhập tọa độ VN2000 (X Y [H]) – Space, Tab, Enter, STT được phép:")
-    in_vn = st.text_area("", height=150, key="vn_in")
-    lon0_vn = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_vn")
-    if st.button("🔁 Chuyển sang WGS84", key="to_wgs84"):
-        parsed = parse_coordinates(in_vn)
+    st.markdown("#### 📝 Nhập toạ độ VN2000 (X Y H hoặc mã hiệu đặc biệt E/N)")
+    coords_input = st.text_area("Mỗi dòng một điểm", height=180)
+    if st.button("🔁 Chuyển sang WGS84"):
+        parsed = parse_coordinates(coords_input)
         if parsed:
             df = pd.DataFrame(
-                [vn2000_to_wgs84_baibao(x, y, h, lon0_vn) for x, y, h in parsed],
+                [vn2000_to_wgs84_baibao(x, y, h, 106.25) for x, y, h in parsed],
                 columns=["Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
             )
             st.session_state.df = df
+            st.success(f"✅ Đã xử lý {len(df)} điểm.")
         else:
-            st.warning("⚠️ Không có dữ liệu hợp lệ (cần X Y [H]).")
+            st.error("⚠️ Không có dữ liệu hợp lệ!")
 
 with tab2:
-    st.markdown("#### 🔢 Nhập tọa độ WGS84 (Lat Lon [H]) – Space, Tab, Enter, STT được phép:")
-    in_wg = st.text_area("", height=150, key="wg_in")
-    lon0_wg = st.number_input("🌐 Kinh tuyến trục (°)", value=106.25, format="%.4f", key="lon0_wg")
-    if st.button("🔁 Chuyển sang VN2000", key="to_vn2000"):
-        parsed = parse_coordinates(in_wg)
-        if parsed:
+    st.markdown("#### 📝 Nhập toạ độ WGS84 (Lat Lon H)")
+    coords_input = st.text_area("Mỗi dòng một điểm", height=180, key="wgs84input")
+    if st.button("🔁 Chuyển sang VN2000"):
+        tokens = re.split(r'\s+', coords_input.strip())
+        coords = []
+        i = 0
+        while i < len(tokens):
+            chunk = []
+            for _ in range(3):
+                if i < len(tokens):
+                    try:
+                        chunk.append(float(tokens[i].replace(",", ".")))
+                    except:
+                        break
+                    i += 1
+            if len(chunk) == 2:
+                chunk.append(0.0)
+            if len(chunk) == 3:
+                coords.append(chunk)
+            else:
+                i += 1
+
+        if coords:
             df = pd.DataFrame(
-                [wgs84_to_vn2000_baibao(lat, lon, h, lon0_wg) for lat, lon, h in parsed],
+                [wgs84_to_vn2000_baibao(lat, lon, h, 106.25) for lat, lon, h in coords],
                 columns=["X (m)", "Y (m)", "h (m)"]
             )
             st.session_state.df = df
+            st.success(f"✅ Đã xử lý {len(df)} điểm.")
         else:
-            st.warning("⚠️ Không có dữ liệu hợp lệ (cần Lat Lon [H]).")
+            st.error("⚠️ Không có dữ liệu hợp lệ!")
 
-# 📍 Nếu có kết quả
+# ✅ Hiển thị kết quả
 if "df" in st.session_state:
     df = st.session_state.df
-    st.markdown("### 📊 Kết quả chuyển đổi")
+    st.markdown("### 📊 Kết quả")
     st.dataframe(df)
 
-    # Nếu Lat/Lon thì vẽ bản đồ
     if {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(df.columns):
-        center_lat = df["Vĩ độ (Lat)"].mean()
-        center_lon = df["Kinh độ (Lon)"].mean()
+        st.markdown("### 🌍 Bản đồ vệ tinh")
         m = folium.Map(
-            location=[center_lat, center_lon],
+            location=[df["Vĩ độ (Lat)"].mean(), df["Kinh độ (Lon)"].mean()],
             zoom_start=14,
             tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
             attr="Esri.WorldImagery"
         )
         for _, row in df.iterrows():
             folium.CircleMarker(
-                location=(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]),
+                location=[row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]],
                 radius=3,
                 color="red",
                 fill=True,
-                fill_opacity=0.8
+                fill_opacity=0.7
             ).add_to(m)
-        st_folium(m, width="100%", height=500)
+        st_folium(m, width="100%", height=550)
+
+        # Xuất file KML
+        kml = df_to_kml(df)
+        if kml:
+            st.download_button(
+                label="📥 Tải xuống file KML",
+                data=kml,
+                file_name="converted_points.kml",
+                mime="application/vnd.google-earth.kml+xml"
+            )
 
 
 # Footer
