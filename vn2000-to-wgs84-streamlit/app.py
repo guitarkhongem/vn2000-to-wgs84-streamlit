@@ -14,19 +14,24 @@ st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 analytics.log_visit()
 
 # ✅ Set background
+import base64  # cần import thêm
+
 def set_background(png_file):
     with open(png_file, "rb") as f:
         data = f.read()
-    b64 = data.encode("base64").decode()
+    b64 = base64.b64encode(data).decode()
     page_bg_img = f"""
     <style>
     .stApp {{
         background-image: url("data:image/png;base64,{b64}");
         background-size: cover;
+        background-attachment: fixed;
+        background-position: center;
     }}
     </style>
     """
     st.markdown(page_bg_img, unsafe_allow_html=True)
+
 
 set_background("background.png")  # file nền bạn đã upload
 
