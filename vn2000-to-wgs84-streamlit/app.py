@@ -41,24 +41,53 @@ with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
-# Parse dữ liệu đầu vào
-def parse_coordinates(text, group=3):
-    tokens = re.split(r'\s+', text.strip())
+import re
+
+def parse_coordinates(text):
+    """
+    Parse input text into list of [X, Y, H] with validations.
+    """
+    tokens = re.findall(r'\d+', text)  # Tìm tất cả số nguyên
     coords = []
     i = 0
-    while i + group <= len(tokens):
-        t0 = tokens[i]
-        if (re.search(r'[A-Za-z]', t0) or ('.' not in t0 and re.fullmatch(r'\d+', t0) and len(tokens) - i >= group + 1)):
+    while i < len(tokens) - 1:
+        x, y = None, None
+
+        # Tìm 7 số và 6 số
+        if len(tokens[i]) == 7 and len(tokens[i+1]) == 6:
+            x = int(tokens[i])
+            y = int(tokens[i+1])
+            i += 2
+        elif len(tokens[i]) == 6 and len(tokens[i+1]) == 7:
+            y = int(tokens[i])
+            x = int(tokens[i+1])
+            i += 2
+        else:
             i += 1
             continue
-        chunk = tokens[i: i+group]
-        try:
-            vals = [float(x.replace(',', '.')) for x in chunk]
-            coords.append(vals)
-            i += group
-        except ValueError:
-            i += 1
+
+        # Kiểm tra khoảng hợp lệ
+        if not (330000 <= y <= 670000):
+            continue  # Tung độ không hợp lệ
+        if not (700000 <= x <= 2000000):
+            continue  # Hoành độ bất thường
+
+        # Kiểm tra độ cao nếu có
+        h = 0
+        if i < len(tokens):
+            if len(tokens[i]) <= 5:  # Độ cao có thể chỉ 2-5 số
+                try:
+                    h_val = int(tokens[i])
+                    if -1000 <= h_val <= 3200:
+                        h = h_val
+                        i += 1
+                except:
+                    pass
+
+        coords.append([x, y, h])
+
     return coords
+
 
 # Xuất file KML
 def df_to_kml(df):
