@@ -193,7 +193,7 @@ if "df" in st.session_state:
                 fill=True,
                 fill_opacity=0.7
             ).add_to(m)
-        st_folium(m, width="100%"", height=550)
+        st_folium(m, width="100%", height=550)
 
         # Xuất file KML
         kml = df_to_kml(df)
