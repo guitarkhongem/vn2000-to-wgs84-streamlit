@@ -44,80 +44,59 @@ with col2:
     st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
 
 # ✅ Hàm parse đầu vào
-import re
-
 def parse_coordinates(text):
-    """
-    Parse đầu vào thành list (x, y, h).
-    Hỗ trợ:
-    - STT, mã hiệu sẽ tự bỏ qua.
-    - Nếu thiếu h thì gán h = 0.
-    - Kiểm soát x, y hợp lệ.
-    """
-    tokens = re.split(r'[\s\t\n]+', text.strip())  # Chia space/tab/newline
+    tokens = re.split(r'\s+', text.strip())
     coords = []
     i = 0
     while i < len(tokens):
         token = tokens[i]
 
-        # Nếu token có chữ (E00552071, N01839564) thì lọc số ra
-        if re.search(r'[A-Za-z]', token):
-            nums = re.findall(r'\d+', token)
-            if nums:
-                token = nums[0]
+        # Nhận dạng kiểu mã hiệu đặc biệt: E00552071 hoặc N01839564
+        if re.fullmatch(r"[EN]\d{8}", token):
+            prefix = token[0]
+            number = token[1:]
+            if prefix == "E":
+                y = int(number)
             else:
-                i += 1
-                continue
+                x = int(number)
 
-        try:
-            num = float(token)
-        except ValueError:
+            # Tìm tiếp đối xứng nếu có
+            if i+1 < len(tokens) and re.fullmatch(r"[EN]\d{8}", tokens[i+1]):
+                next_prefix = tokens[i+1][0]
+                next_number = tokens[i+1][1:]
+                if next_prefix == "E":
+                    y = int(next_number)
+                else:
+                    x = int(next_number)
+                i += 1  # ăn thêm 1 token
+
+            coords.append([float(x), float(y), 0])  # Gán h=0
             i += 1
             continue
 
-        # Phải có ít nhất 2 số liên tiếp (X, Y)
-        if i+1 < len(tokens):
-            next_token = tokens[i+1]
-
-            if re.search(r'[A-Za-z]', next_token):
-                nums = re.findall(r'\d+', next_token)
-                if nums:
-                    next_token = nums[0]
-
-            try:
-                num2 = float(next_token)
-            except ValueError:
-                i += 1
-                continue
-
-            x, y = num, num2
-            h = 0  # Default
-
-            # Có H hay không
-            if i+2 < len(tokens):
-                next_next_token = tokens[i+2]
-                if re.search(r'[A-Za-z]', next_next_token):
-                    nums = re.findall(r'\d+', next_next_token)
-                    if nums:
-                        next_next_token = nums[0]
-
+        # Kiểu nhập thông thường: 1839564 552071 hoặc 1839629.224 552222.889 414.540
+        chunk = []
+        for _ in range(3):
+            if i < len(tokens):
                 try:
-                    h = float(next_next_token)
-                    i += 3  # X Y H
-                except ValueError:
-                    i += 2  # X Y (không có H)
-            else:
-                i += 2
-
-            # Kiểm soát X, Y hợp lệ
-            if 1000000 <= x <= 2000000 and 330000 <= y <= 670000:
-                coords.append((x, y, h))
-
+                    num = float(tokens[i].replace(",", "."))
+                    chunk.append(num)
+                except:
+                    break
+                i += 1
+        if len(chunk) == 2:
+            chunk.append(0.0)  # thiếu h thì gán h=0
+        if len(chunk) == 3:
+            coords.append(chunk)
         else:
-            i += 1
+            i += 1  # nhảy tới nếu không hợp lệ
 
-    return coords
-
+    # ✅ Lọc theo điều kiện hợp lệ X, Y
+    filtered = []
+    for x, y, h in coords:
+        if 1_000_000 <= x <= 2_000_000 and 330_000 <= y <= 670_000 and -1000 <= h <= 3200:
+            filtered.append([x, y, h])
+    return filtered
 
 # ✅ Hàm export ra KML
 def df_to_kml(df):
@@ -226,17 +205,15 @@ if "df" in st.session_state:
                 mime="application/vnd.google-earth.kml+xml"
             )
 
-
-# Footer
+# ✅ Footer
 st.markdown("---")
 st.markdown(
-    "📌 Tác giả: Trần Trường Sinh  \n"
-    "📞 Số điện thoại: 0917.750.555"
+    "📌 Tác giả: **Trần Trường Sinh**  \n"
+    "📞 0917.750.555"
 )
 st.markdown(
     "🔍 **Nguồn công thức**: Bài báo khoa học: **CÔNG TÁC TÍNH CHUYỂN TỌA ĐỘ TRONG CÔNG NGHỆ MÁY BAY KHÔNG NGƯỜI LÁI CÓ ĐỊNH VỊ TÂM CHỤP CHÍNH XÁC**  \n"
     "Tác giả: Trần Trung Anh¹, Quách Mạnh Tuấn²  \n"
-    "¹ Trường Đại học Mỏ - Địa chất  \n"
-    "² Công ty CP Xây dựng và Thương mại QT Miền Bắc  \n"
-    "_Hội nghị Khoa học Quốc gia Về Công nghệ Địa không gian, 2021_"
-)
+    "¹ Đại học Mỏ - Địa chất, ² Công ty CP Xây dựng và TM QT Miền Bắc  \n"
+    "_Hội nghị KH Quốc gia về Công nghệ Địa không gian_"
+) 
