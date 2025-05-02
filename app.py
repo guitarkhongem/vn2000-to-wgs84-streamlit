@@ -3,35 +3,17 @@ import streamlit as st
 import pandas as pd
 import re
 import folium
-OCR_ENABLED = not "STREAMLIT_SERVER" in os.environ
-
-if OCR_ENABLED:
-    try:
-        from functions.ocr import auto_ocr_extract
-    except ImportError:
-        OCR_ENABLED = False
 
 from streamlit_folium import st_folium
 from shapely.geometry import Polygon, LineString
 from geographiclib.geodesic import Geodesic
 
-# Add this block right here
-import subprocess
-
-def ocr_image_to_text(image_path):
-    try:
-        result = subprocess.run(["python", "ocr_gui.py", image_path], capture_output=True, text=True)
-        return result.stdout.strip()
-    except Exception as e:
-        return f"Lỗi OCR: {e}"
-
-# --- Your other imports ---
 from functions.background import set_background
 from functions.parse import parse_coordinates
 from functions.kml import df_to_kml
 from functions.footer import show_footer
 from functions.converter import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao
-from geographiclib.geodesic import Geodesic
+
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 set_background("assets/background.png")
 
@@ -54,7 +36,7 @@ with col1:
     st.image("assets/logo.jpg", width=90)
 with col2:
     st.title("VN2000 ⇄ WGS84 Converter")
-    st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚNG HÓA")
+    st.markdown("### BẤT ĐỘNG SẢN HUYỆN HƯỚcNG HÓA")
 
 lon0_choices = {
     104.5: "Kiên Giang, Cà Mau",
@@ -68,7 +50,7 @@ lon0_choices = {
     107.0: "Bắc Giang, Thừa Thiên – Huế",
     107.25: "Lạng Sơn",
     107.5: "Kon Tum",
-    107.75: "TP. Đà Nẵng, Quảng Nam, Đồng Nai, Bà Rịa – Vũng Tàu, Lâm Đồng",
+    107.75: "TP. Đà Nẵng, Quảng Nam, Đồng Nai, Bà Rịa – Võng Tàu, Lâm Đồng",
     108.0: "Quảng Ngãi",
     108.25: "Bình Định, Khánh Hòa, Ninh Thuận",
     108.5: "Gia Lai, Đắk Lắk, Đắk Nông, Phú Yên, Bình Thuận"
@@ -81,51 +63,14 @@ col_left, col_mid, col_map = st.columns([1, 1, 2])
 
 import tempfile
 from PIL import Image
-import os
-
-# Tắt OCR khi chạy trên Streamlit Cloud (không đủ môi trường cài easyocr)
-if OCR_ENABLED:
-    st.markdown("### 📷 Nhận dạng tọa độ từ ảnh (OCR)")
-    uploaded_image = st.file_uploader("Chọn ảnh chứa tọa độ:", type=["png", "jpg", "jpeg"])
-    
-    if uploaded_image:
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
-            tmp.write(uploaded_image.read())
-            tmp_path = tmp.name
-        
-        if st.button("🔍 Đọc ảnh OCR"):
-            with st.spinner("Đang nhận dạng..."):
-                content = auto_ocr_extract(tmp_path)
-                st.text_area("📄 Nội dung nhận dạng:", value="\n".join(content), height=200)
-else:
-    # Không hiển thị gì cả nếu OCR bị tắt
-    pass
-
-
 
 with col_left:
     st.markdown("## 📄 Upload hoặc nhập toạ độ")
     uploaded_file = st.file_uploader("Tải file TXT hoặc CSV", type=["txt", "csv"])
-    ocr_image = st.file_uploader("📸 Chọn ảnh để OCR", type=["jpg", "jpeg", "png", "bmp"])
 
     content = ""
     if uploaded_file is not None:
         content = uploaded_file.read().decode("utf-8")
-
-    if ocr_image is not None:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
-            tmp.write(ocr_image.read())
-            tmp.flush()
-            if OCR_ENABLED:
-    content = auto_ocr_extract(tmp.name)
-else:
-    content = ""
-
-    if os.path.exists("ocr_debug.log"):
-         with open("ocr_debug.log", "r", encoding="utf-8") as logf:
-            debug_text = logf.read()
-            st.expander("📄 Log các dòng bị loại").write(debug_text)
 
     coords_input = st.text_area("Nội dung toạ độ", value=content, height=180)
 
@@ -146,15 +91,12 @@ else:
 
     <small>
     <ul>
-  <li>Có thể tải file <code>.txt</code> / <code>.csv</code> hoặc chọn ảnh chứa bảng số</li>
+  <li>Có thể tải file <code>.txt</code> / <code>.csv</code></li>
   <li>Dấu cách, tab hoặc dấu phẩy đều được chấp nhận</li>
   <li>Nếu không có Z (cao độ) sẽ mặc định là <code>0.0</code></li>
     </ul>
     </small>
 """, unsafe_allow_html=True)
-
-
-
 
     selected_display = st.selectbox("🧽️ Chọn kinh tuyến trục", options=lon0_display, index=default_index)
 
