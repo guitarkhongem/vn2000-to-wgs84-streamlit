@@ -3,6 +3,14 @@ import streamlit as st
 import pandas as pd
 import re
 import folium
+OCR_ENABLED = not "STREAMLIT_SERVER" in os.environ
+
+if OCR_ENABLED:
+    try:
+        from functions.ocr import auto_ocr_extract
+    except ImportError:
+        OCR_ENABLED = False
+
 from streamlit_folium import st_folium
 from shapely.geometry import Polygon, LineString
 from geographiclib.geodesic import Geodesic
