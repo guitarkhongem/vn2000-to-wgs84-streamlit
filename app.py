@@ -73,7 +73,17 @@ col_left, col_mid, col_map = st.columns([1, 1, 2])
 
 import tempfile
 from PIL import Image
-from functions.ocr import auto_ocr_extract
+import os
+
+# Tắt OCR khi chạy trên Streamlit Cloud (không đủ môi trường cài easyocr)
+if "STREAMLIT_SERVER" in os.environ:
+    OCR_ENABLED = False
+else:
+    OCR_ENABLED = True
+
+if OCR_ENABLED:
+    from functions.ocr import auto_ocr_extract
+
 
 with col_left:
     st.markdown("## 📄 Upload hoặc nhập toạ độ")

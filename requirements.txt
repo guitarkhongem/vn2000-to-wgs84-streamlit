@@ -4,5 +4,3 @@ folium
 streamlit-folium
 shapely
 geographiclib
-easyocr
-torch==1.13.1
