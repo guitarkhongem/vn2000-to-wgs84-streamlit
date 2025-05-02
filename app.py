@@ -76,19 +76,23 @@ from PIL import Image
 import os
 
 # Tắt OCR khi chạy trên Streamlit Cloud (không đủ môi trường cài easyocr)
-if "STREAMLIT_SERVER" in os.environ:
-    OCR_ENABLED = False
-else:
-    OCR_ENABLED = True
-
-auto_ocr_extract = None
-
 if OCR_ENABLED:
-    try:
-        from functions.ocr import auto_ocr_extract
-    except ImportError:
-        OCR_ENABLED = False
-        auto_ocr_extract = None
+    st.markdown("### 📷 Nhận dạng tọa độ từ ảnh (OCR)")
+    uploaded_image = st.file_uploader("Chọn ảnh chứa tọa độ:", type=["png", "jpg", "jpeg"])
+    
+    if uploaded_image:
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp.write(uploaded_image.read())
+            tmp_path = tmp.name
+        
+        if st.button("🔍 Đọc ảnh OCR"):
+            with st.spinner("Đang nhận dạng..."):
+                content = auto_ocr_extract(tmp_path)
+                st.text_area("📄 Nội dung nhận dạng:", value="\n".join(content), height=200)
+else:
+    # Không hiển thị gì cả nếu OCR bị tắt
+    pass
 
 
 
