@@ -81,8 +81,15 @@ if "STREAMLIT_SERVER" in os.environ:
 else:
     OCR_ENABLED = True
 
+auto_ocr_extract = None
+
 if OCR_ENABLED:
-    from functions.ocr import auto_ocr_extract
+    try:
+        from functions.ocr import auto_ocr_extract
+    except ImportError:
+        OCR_ENABLED = False
+        auto_ocr_extract = None
+
 
 
 with col_left:
