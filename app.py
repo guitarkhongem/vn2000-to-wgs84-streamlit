@@ -117,7 +117,11 @@ with col_left:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
             tmp.write(ocr_image.read())
             tmp.flush()
-            content = auto_ocr_extract(tmp.name)
+            if OCR_ENABLED:
+    content = auto_ocr_extract(tmp.name)
+else:
+    content = ""
+
     if os.path.exists("ocr_debug.log"):
          with open("ocr_debug.log", "r", encoding="utf-8") as logf:
             debug_text = logf.read()
