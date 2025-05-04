@@ -78,12 +78,6 @@ with col_left:
 
     coords_input = st.text_area("Nội dung toạ độ", value=content, height=180)
 
-    col1, col2, col3 = st.columns([3, 4, 3])
-
-with col1:
-    st.subheader("📅 Nhập dữ liệu toạ độ")
-    input_text = st.text_area("Dán hoặc gõ toạ độ vào đây:", height=200)
-
     with st.expander("📘 Xem định dạng toạ độ hỗ trợ"):
         st.markdown("""
         | STT | Định dạng nhập                            | Ghi chú                             |
