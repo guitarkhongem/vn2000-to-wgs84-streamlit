@@ -107,7 +107,7 @@ with tab1:
             )
 
             # Tạo cột "Tên điểm" trùng với STT
-            df["Tên điểm"] = "Điểm " + df["STT"].astype(str)
+            df["Tên điểm"] = df["STT"].astype(str)
 
             # Lưu vào session_state để dùng ở bảng, bản đồ, export
             st.session_state.df = df[["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]]
