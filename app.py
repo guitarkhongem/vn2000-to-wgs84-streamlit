@@ -191,11 +191,11 @@ with col_map:
 
                         st.markdown(f"""
                         ### 📐 So sánh diện tích
-                        🧮 Shoelace (VN2000): `{A_shoelace:,.2f} m²`  
-                        🌍 Geodesic (WGS84): `{A_geo:,.2f} m²`  
-                        📉 Sai lệch: `{diff:.2f}%`
+                        🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
+                        🌍 Geodesic (WGS84): `{A2:,.1f} m²` (~{ha2:.1f} ha)  
+                        📉 Sai lệch: `{diff:.1f}%`
                         """)
-
+                       
         with col_btn3:
             if st.button("📏 Hiện kích thước cạnh"):
                 st.session_state.show_lengths = not st.session_state.get("show_lengths", False)
