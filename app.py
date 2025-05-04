@@ -176,30 +176,23 @@ with col_mid:
                     mime="application/vnd.google-earth.kml+xml"
                 )
 if st.session_state.get("join_points", False) and st.session_state.get("show_lengths", False):
-    if {"Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
-        df_sorted = st.session_state.df.sort_values(
-            by="Tên điểm",
-            key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
-            ascending=True
-        ).reset_index(drop=True)
-        points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-        if len(points) >= 2:
-            try:
-                df_edges = compute_edge_lengths(points)
-                st.markdown("### 📏 Bảng độ dài các cạnh")
-                st.dataframe(df_edges, height=250)
-                st.download_button(
-                    label="📤 Tải bảng độ dài cạnh (CSV)",
-                    data=df_edges.to_csv(index=False).encode("utf-8"),
-                    file_name="edge_lengths.csv",
-                    mime="text/csv"
-                )
-            except Exception as e:
-                st.error(f"⚠️ Error computing edge lengths: {e}")
-        else:
-            st.warning("⚠️ Not enough points to compute edge lengths.")
-    else:
-        st.warning("⚠️ Required columns are missing in the DataFrame.")
+    df_sorted = df.sort_values(
+        by="Tên điểm",
+        key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
+        ascending=True
+    ).reset_index(drop=True)
+    points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+    if points:
+        df_edges = compute_edge_lengths(points)
+        st.markdown("### 📏 Bảng độ dài các cạnh")
+        st.dataframe(df_edges, height=250)
+        st.download_button(
+            label="📤 Tải bảng độ dài cạnh (CSV)",
+            data=df_edges.to_csv(index=False).encode("utf-8"),
+            file_name="edge_lengths.csv",
+            mime="text/csv"
+        )
+
 
 
 # --- Map rendering ---
