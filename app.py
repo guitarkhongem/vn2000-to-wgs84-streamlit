@@ -84,7 +84,7 @@ with col_left:
         |-----|--------------------------------------------|--------------------------------------|
         | 1   | `E12345678 N56781234`                      | EN mã hiệu                           |
         | 2   | `A01 1838446.03 550074.77 37.98`           | STT X Y H                            |
-        | 3   | `A01 1838446.03 550074.77`                | STT X Y _(khuyết H)                   |
+        | 3   | `A01 1838446.03 550074.77`                | STT X Y _(khuyết H)_                  |
         | 4   | `1838446.03 550074.77`                    | X Y                                  |
         | 5   | `1838446.03 550074.77 37.98`              | X Y H                                |
 
@@ -92,8 +92,7 @@ with col_left:
         ❌ **Toạ độ ngoài miền hợp lệ** (X, Y, H) sẽ được liệt kê ở bảng lỗi.
         """, unsafe_allow_html=True)
 
-# --- Footer ---
-show_footer()
+
 
 # --- Map rendering update fix ---
 if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
@@ -146,9 +145,6 @@ if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset
         add_numbered_markers(m, df_sorted)
 
     st_folium(m, width="100%", height=400)
-
-   
-
 
 # --- Footer ---
 show_footer()
