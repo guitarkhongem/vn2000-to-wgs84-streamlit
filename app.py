@@ -78,7 +78,26 @@ with col_left:
 
     coords_input = st.text_area("Nội dung toạ độ", value=content, height=180)
 
-    st.markdown("""<small><b>Hướng dẫn:</b> Mỗi dòng: <code>STT X Y [Z]</code> | tab, space, dấu phẩy OK | Z mặc định = 0</small>""", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([3, 4, 3])
+
+with col1:
+    st.subheader("📅 Nhập dữ liệu toạ độ")
+    input_text = st.text_area("Dán hoặc gõ toạ độ vào đây:", height=200)
+
+    with st.expander("📘 Xem định dạng toạ độ hỗ trợ"):
+        st.markdown("""
+        | STT | Định dạng nhập                            | Ghi chú                             |
+        |-----|--------------------------------------------|--------------------------------------|
+        | 1   | `E12345678 N56781234`                      | EN mã hiệu                           |
+        | 2   | `A01 1838446.03 550074.77 37.98`           | STT X Y H                            |
+        | 3   | `A01 1838446.03 550074.77`                | STT X Y _(khuyết H)_ ✅ **Mới**      |
+        | 4   | `1838446.03 550074.77`                    | X Y                                  |
+        | 5   | `1838446.03 550074.77 37.98`              | X Y H                                |
+
+        ✅ **Phân cách** có thể là: khoảng trắng, tab, hoặc xuống dòng.  
+        ❌ **Toạ độ ngoài miền hợp lệ** (X, Y, H) sẽ được liệt kê ở bảng lỗi.
+        """, unsafe_allow_html=True)
+
 
     selected_display = st.selectbox("🫐 Kinh tuyến trục", options=lon0_display, index=default_index)
 
