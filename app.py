@@ -98,27 +98,23 @@ with col_left:
 
 with tab1:
     if st.button("➡️ Chuyển sang WGS84"):
-    parsed, errors = parse_coordinates(coords_input)
-    if parsed:
-        df = pd.DataFrame(
-            [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
-            columns=["STT", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
-        )
-        # Giữ nguyên STT làm Tên điểm (không thêm "Điểm")
-        df["Tên điểm"] = df["STT"]
+        parsed, errors = parse_coordinates(coords_input)
+        if parsed:
+            df = pd.DataFrame(
+                [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("-")[0].strip()))) for ten, x, y, h in parsed],
+                columns=["STT", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
+            )
+            df["Tên điểm"] = df["STT"]
+            st.session_state.df = df[["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]]
+            st.session_state.textout = "\n".join(
+                f"{row['Tên điểm']} {row['Vĩ độ (Lat)']} {row['Kinh độ (Lon)']} {row['H (m)']}"
+                for _, row in df.iterrows()
+            )
+            st.success(f"✅ Đã xử lý {len(df)} điểm hợp lệ.")
+        else:
+            st.error("⚠️ Không có dữ liệu hợp lệ!")
 
-        st.session_state.df = df[["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]]
-        st.session_state.textout = "\n".join(
-            f"{row['Tên điểm']} {row['Vĩ độ (Lat)']} {row['Kinh độ (Lon)']} {row['H (m)']}"
-            for _, row in df.iterrows()
-        )
-        st.success(f"✅ Đã xử lý {len(df)} điểm hợp lệ.")
-    else:
-        st.error("⚠️ Không có dữ liệu hợp lệ!")
-
-
-
-    with tab2:
+with tab2:
     if st.button("⬅️ Chuyển sang VN2000"):
         tokens = re.split(r"[\s\n]+", coords_input.strip())
         coords = []
@@ -152,8 +148,6 @@ with tab1:
             st.success(f"✅ Đã xử lý {len(df)} điểm.")
         else:
             st.error("⚠️ Không có dữ liệu hợp lệ!")
-
-
 
 # --- Output preview ---
 with col_mid:
