@@ -96,22 +96,31 @@ with col_left:
     st.markdown("### 🔄 Chuyển đổi toạ độ")
     tab1, tab2 = st.tabs(["VN2000 ➔ WGS84", "WGS84 ➔ VN2000"])
 
-    with tab1:
-        if st.button("➡️ Chuyển sang WGS84"):
-            parsed, errors = parse_coordinates(coords_input)
-            if parsed:
-                df = pd.DataFrame(
-                    [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
-                    columns=["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
-                )
-                st.session_state.df = df
-                st.session_state.textout = "\n".join(
-                    f"{row['Tên điểm']} {row['Vĩ độ (Lat)']} {row['Kinh độ (Lon)']} {row['H (m)']}"
-                    for _, row in df.iterrows()
-                )
-                st.success(f"✅ Đã xử lý {len(df)} điểm hợp lệ.")
-            else:
-                st.error("⚠️ Không có dữ liệu hợp lệ!")
+with tab1:
+    if st.button("➡️ Chuyển sang WGS84"):
+        parsed, errors = parse_coordinates(coords_input)
+        if parsed:
+            # Tạo DataFrame với STT là cột đầu tiên
+            df = pd.DataFrame(
+                [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
+                columns=["STT", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
+            )
+
+            # Tạo cột "Tên điểm" trùng với STT
+            df["Tên điểm"] = "Điểm " + df["STT"].astype(str)
+
+            # Lưu vào session_state để dùng ở bảng, bản đồ, export
+            st.session_state.df = df[["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]]
+
+            # Tạo text kết quả để hiển thị
+            st.session_state.textout = "\n".join(
+                f"{row['Tên điểm']} {row['Vĩ độ (Lat)']} {row['Kinh độ (Lon)']} {row['H (m)']}"
+                for _, row in df.iterrows()
+            )
+            st.success(f"✅ Đã xử lý {len(df)} điểm hợp lệ.")
+        else:
+            st.error("⚠️ Không có dữ liệu hợp lệ!")
+
 
     with tab2:
         if st.button("⬅️ Chuyển sang VN2000"):
