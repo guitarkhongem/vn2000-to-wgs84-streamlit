@@ -4,81 +4,30 @@ def parse_coordinates(text):
     if not text:
         return [], []
 
-    tokens = re.split(r'[\s\n]+', text.strip())
-    tokens = [t.replace(",", ".") for t in tokens]  # Chuẩn hóa dấu phẩy
+    lines = text.strip().splitlines()
     coords = []
     errors = []
-    i = 0
 
-    while i < len(tokens):
-        token = tokens[i]
+    for line in lines:
+        line = line.strip().replace(",", ".")
+        tokens = re.split(r'[\t\s]+', line)
+        tokens = [t for t in tokens if t]  # bỏ trống
 
-        # --- EN format ---
-        if re.fullmatch(r"[EN]\d{8}", token):
-            x, y = None, None
-            prefix = token[0]
-            number = token[1:]
-            if prefix == "E":
-                y = int(number)
-            else:
-                x = int(number)
-
-            if i + 1 < len(tokens) and re.fullmatch(r"[EN]\d{8}", tokens[i + 1]):
-                next_prefix = tokens[i + 1][0]
-                next_number = tokens[i + 1][1:]
-                if next_prefix == "E":
-                    y = int(next_number)
-                else:
-                    x = int(next_number)
-                i += 1
-
-            if x is not None and y is not None:
-                coords.append(["", float(x), float(y), 0])
-            i += 1
-            continue
-
-        # --- STT X Y H ---
-        if i + 3 < len(tokens):
-            stt = tokens[i]
-            try:
-                x = float(tokens[i + 1])
-                y = float(tokens[i + 2])
-                h = float(tokens[i + 3])
+        try:
+            if len(tokens) == 4:
+                stt, x, y, h = tokens
+                x, y, h = float(x), float(y), float(h)
                 coords.append([stt, x, y, h])
-                i += 4
-                continue
-            except:
-                pass
-
-        # --- STT X Y ---
-        if i + 2 < len(tokens):
-            stt = tokens[i]
-            try:
-                x = float(tokens[i + 1])
-                y = float(tokens[i + 2])
+            elif len(tokens) == 3:
+                stt, x, y = tokens
+                x, y = float(x), float(y)
                 coords.append([stt, x, y, 0.0])
-                i += 3
-                continue
-            except:
-                pass
+            else:
+                raise ValueError("Không đúng định dạng STT X Y [H]")
+        except Exception as e:
+            errors.append([line, f"Lỗi: {e}"])
 
-        # --- X Y [H] ---
-        chunk = []
-        for _ in range(3):
-            if i < len(tokens):
-                try:
-                    chunk.append(float(tokens[i]))
-                except:
-                    break
-                i += 1
-        if len(chunk) == 2:
-            chunk.append(0.0)
-        if len(chunk) == 3:
-            coords.append(["", chunk[0], chunk[1], chunk[2]])
-        else:
-            i += 1
-
-    # --- Phân loại hợp lệ/sai ---
+    # --- Lọc theo điều kiện cứng ---
     filtered = []
     for ten_diem, x, y, h in coords:
         if 500_000 <= x <= 2_650_000 and 330_000 <= y <= 670_000 and -1000 <= h <= 3200:
