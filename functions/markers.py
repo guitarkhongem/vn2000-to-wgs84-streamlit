@@ -2,32 +2,30 @@ import folium
 
 def add_numbered_markers(map_obj, df):
     """
-    Vẽ marker trên bản đồ theo đúng thứ tự STT từ DataFrame.
-    DataFrame phải có cột: 'STT', 'Vĩ độ (Lat)', 'Kinh độ (Lon)', 'Tên điểm' (có thể không cần nếu chỉ dùng STT).
+    Vẽ các điểm đánh dấu trên bản đồ với tên trùng khớp 'Tên điểm'.
+    Yêu cầu DataFrame có các cột: 'Vĩ độ (Lat)', 'Kinh độ (Lon)', 'Tên điểm'.
     """
-    # Sắp xếp theo STT nếu chưa chắc thứ tự đúng
-    df = df.sort_values("STT").reset_index(drop=True)
+
+    df = df.reset_index(drop=True)  # Giữ nguyên thứ tự hiện tại
 
     for _, row in df.iterrows():
         lat = row["Vĩ độ (Lat)"]
         lon = row["Kinh độ (Lon)"]
-        stt = str(row["STT"])
-        ten_diem = row.get("Tên điểm", f"Điểm {stt}")
+        ten_diem = row["Tên điểm"]
 
-        # Dấu "+"
+        # Dấu cộng nhỏ đỏ ở tâm điểm
         folium.Marker(
             location=[lat, lon],
-            icon=folium.DivIcon(html=f"""
+            icon=folium.DivIcon(html="""
                 <div style='font-size:12px; color:red; font-weight:bold;'>+</div>
             """),
-            tooltip=f"{stt}: {ten_diem}"
+            tooltip=ten_diem
         ).add_to(map_obj)
 
-        # Số STT to
+        # Hiển thị Tên điểm to màu đỏ
         folium.Marker(
             location=[lat, lon],
             icon=folium.DivIcon(html=f"""
-                <div style='font-size:18px; font-weight:bold; color:red'>{stt}</div>
+                <div style='font-size:16px; font-weight:bold; color:red'>{ten_diem}</div>
             """)
         ).add_to(map_obj)
-
