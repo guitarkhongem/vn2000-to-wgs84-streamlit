@@ -155,8 +155,12 @@ with col_mid:
     st.markdown("### 📊 Kết quả")
     if "df" in st.session_state:
         df = st.session_state.df
-        df_edges = df_edges.reset_index(drop=True)
-        st.dataframe(df, height=250,use_container_width=True, hide_index=True)
+        if "df_edges" in st.session_state:
+            df_edges = st.session_state.df_edges.reset_index(drop=True)
+            st.table(df_edges)
+        else:
+            st.warning("⚠️ Không có dữ liệu cạnh để hiển thị.")
+
         st.text_area("📄 Text kết quả", st.session_state.get("textout", ""), height=200)
 
         col_csv, col_kml = st.columns(2)
@@ -178,24 +182,25 @@ with col_mid:
                 )
 
         # 👉 THÊM NGAY DƯỚI ĐÂY (nằm trong col_mid)
-        if st.session_state.get("join_points", False) and st.session_state.get("show_lengths", False):
-            df_sorted = df.sort_values(
-                by="Tên điểm",
-                key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
-                ascending=True
-            ).reset_index(drop=True)
-            points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-            if points:
-                df_edges = compute_edge_lengths(points)
-                st.markdown("### 📏 Bảng độ dài các cạnh")
-                df_edges = df_edges.reset_index(drop=True)
-                st.dataframe(df_edges, height=250,use_container_width=True, hide_index=True)
-                st.download_button(
-                    label="📤 Tải bảng độ dài cạnh (CSV)",
-                    data=df_edges.to_csv(index=False).encode("utf-8"),
-                    file_name="edge_lengths.csv",
-                    mime="text/csv"
-                )
+if st.session_state.get("join_points", False) and st.session_state.get("show_lengths", False):
+    df_sorted = st.session_state.df.sort_values(
+        by="Tên điểm",
+        key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
+        ascending=True
+    ).reset_index(drop=True)
+    points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+    
+    if points:
+        df_edges = compute_edge_lengths(points)
+        st.session_state.df_edges = df_edges  # Save to session state for reuse
+        st.markdown("### 📏 Bảng độ dài các cạnh")
+        st.table(df_edges)  # 👉 ẩn hoàn toàn cột chỉ mục
+        st.download_button(
+            label="📤 Tải bảng độ dài cạnh (CSV)",
+            data=df_edges.to_csv(index=False).encode("utf-8"),
+            file_name="edge_lengths.csv",
+            mime="text/csv"
+        )
 
 
 
