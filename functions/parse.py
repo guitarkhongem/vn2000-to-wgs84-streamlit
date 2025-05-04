@@ -1,17 +1,19 @@
 import re
 
 def parse_coordinates(text):
-    if not text:  # 👈 Thêm dòng kiểm tra rỗng ngay đầu
+    if not text:
         return [], []
-        
+
     tokens = re.split(r'[\s\n]+', text.strip())
+    tokens = [t.replace(",", ".") for t in tokens]  # chuẩn hóa dấu ,
     coords = []
     errors = []
     i = 0
+
     while i < len(tokens):
         token = tokens[i]
 
-        # --- Nhận dạng mã hiệu E/N ---
+        # --- Nhận dạng mã hiệu EN ---
         if re.fullmatch(r"[EN]\d{8}", token):
             x, y = None, None
             prefix = token[0]
@@ -21,9 +23,9 @@ def parse_coordinates(text):
             else:
                 x = int(number)
 
-            if i+1 < len(tokens) and re.fullmatch(r"[EN]\d{8}", tokens[i+1]):
-                next_prefix = tokens[i+1][0]
-                next_number = tokens[i+1][1:]
+            if i + 1 < len(tokens) and re.fullmatch(r"[EN]\d{8}", tokens[i + 1]):
+                next_prefix = tokens[i + 1][0]
+                next_number = tokens[i + 1][1:]
                 if next_prefix == "E":
                     y = int(next_number)
                 else:
@@ -35,25 +37,37 @@ def parse_coordinates(text):
             i += 1
             continue
 
-        # --- Nếu có 4 token liên tiếp (STT X Y H) ---
+        # --- STT X Y H (4 giá trị) ---
         if i + 3 < len(tokens):
             stt = tokens[i]
             try:
-                x = float(tokens[i+1].replace(",", "."))
-                y = float(tokens[i+2].replace(",", "."))
-                h = float(tokens[i+3].replace(",", "."))
+                x = float(tokens[i + 1])
+                y = float(tokens[i + 2])
+                h = float(tokens[i + 3])
                 coords.append([stt, x, y, h])
                 i += 4
                 continue
             except:
                 pass
 
-        # --- Nếu chỉ có 2 hoặc 3 token (X Y [H]) ---
+        # --- STT X Y (3 giá trị khuyết Z) ---
+        if i + 2 < len(tokens):
+            stt = tokens[i]
+            try:
+                x = float(tokens[i + 1])
+                y = float(tokens[i + 2])
+                coords.append([stt, x, y, 0.0])
+                i += 3
+                continue
+            except:
+                pass
+
+        # --- X Y [H] hoặc chỉ X Y ---
         chunk = []
         for _ in range(3):
             if i < len(tokens):
                 try:
-                    chunk.append(float(tokens[i].replace(",", ".")))
+                    chunk.append(float(tokens[i]))
                 except:
                     break
                 i += 1
@@ -70,6 +84,14 @@ def parse_coordinates(text):
         if 500_000 <= x <= 2_650_000 and 330_000 <= y <= 670_000 and -1000 <= h <= 3200:
             filtered.append([ten_diem, x, y, h])
         else:
-            errors.append([ten_diem, x, y, h])
+            # Ghi lý do lỗi chi tiết
+            reason = []
+            if not (500_000 <= x <= 2_650_000):
+                reason.append(f"X={x} ngoài miền")
+            if not (330_000 <= y <= 670_000):
+                reason.append(f"Y={y} ngoài miền")
+            if not (-1000 <= h <= 3200):
+                reason.append(f"H={h} ngoài miền")
+            errors.append([ten_diem, x, y, h, "; ".join(reason)])
 
     return filtered, errors
