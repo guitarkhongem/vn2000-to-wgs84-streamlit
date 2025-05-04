@@ -18,7 +18,7 @@ from functions.area import compute_polygon_area
 from functions.edges import add_edge_lengths
 from functions.markers import add_numbered_markers
 from functions.polygon import draw_polygon
-from functions.compare_area import compare_areas
+from functions.area import compute_polygon_area
 # --- Page setup ---
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 set_background("assets/background.png")
