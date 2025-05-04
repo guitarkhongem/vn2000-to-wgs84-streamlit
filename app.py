@@ -78,89 +78,140 @@ with col_left:
 
     coords_input = st.text_area("Nội dung toạ độ", value=content, height=180)
 
-    with st.expander("📘 Xem định dạng toạ độ hỗ trợ"):
-        st.markdown("""
-        | STT | Định dạng nhập                            | Ghi chú                             |
-        |-----|--------------------------------------------|--------------------------------------|
-        | 1   | `E12345678 N56781234`                      | EN mã hiệu                           |
-        | 2   | `A01 1838446.03 550074.77 37.98`           | STT X Y H                            |
-        | 3   | `A01 1838446.03 550074.77`                | STT X Y _(khuyết H)_                  |
-        | 4   | `1838446.03 550074.77`                    | X Y                                  |
-        | 5   | `1838446.03 550074.77 37.98`              | X Y H                                |
+    st.markdown("""<small><b>Hướng dẫn:</b> Mỗi dòng: <code>STT X Y [Z]</code> | tab, space, dấu phẩy OK | Z mặc định = 0</small>""", unsafe_allow_html=True)
 
-        ✅ **Phân cách** có thể là: khoảng trắng, tab, hoặc xuống dòng.  
-        ❌ **Toạ độ ngoài miền hợp lệ** (X, Y, H) sẽ được liệt kê ở bảng lỗi.
-        """, unsafe_allow_html=True)
- # --- Nút chuyển đổi tọa độ ---
-    selected_display = st.selectbox("🧭 Kinh tuyến trục", options=lon0_display, index=default_index)
+    selected_display = st.selectbox("🫐 Kinh tuyến trục", options=lon0_display, index=default_index)
 
-    if st.button("➡️ Chuyển sang WGS84"):
-        parsed, errors = parse_coordinates(coords_input)
-        if parsed:
-            df = pd.DataFrame(
-                [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
-                columns=["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
-            )
-            st.dataframe(df)
+    st.markdown("### 🔄 Chuyển đổi toạ độ")
+    tab1, tab2 = st.tabs(["VN2000 ➔ WGS84", "WGS84 ➔ VN2000"])
+
+    with tab1:
+        if st.button("➡️ Chuyển sang WGS84"):
+            parsed, errors = parse_coordinates(coords_input)
+            if parsed:
+                df = pd.DataFrame(
+                    [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
+                    columns=["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
+                )
+                st.session_state.df = df
+                st.session_state.textout = "\n".join(
+                    f"{row['Tên điểm']} {row['Vĩ độ (Lat)']} {row['Kinh độ (Lon)']} {row['H (m)']}"
+                    for _, row in df.iterrows()
+                )
+                st.success(f"✅ Đã xử lý {len(df)} điểm hợp lệ.")
+            else:
+                st.error("⚠️ Không có dữ liệu hợp lệ!")
+
+    with tab2:
+        if st.button("⬅️ Chuyển sang VN2000"):
+            tokens = re.split(r"[\s\n]+", coords_input.strip())
+            coords = []
+            i = 0
+            while i < len(tokens):
+                chunk = []
+                for _ in range(3):
+                    if i < len(tokens):
+                        try:
+                            chunk.append(float(tokens[i].replace(",", ".")))
+                        except:
+                            break
+                        i += 1
+                if len(chunk) == 2:
+                    chunk.append(0.0)
+                if len(chunk) == 3:
+                    coords.append(chunk)
+                else:
+                    i += 1
+
+            if coords:
+                df = pd.DataFrame(
+                    [("", *wgs84_to_vn2000_baibao(lat, lon, h, float(selected_display.split("–")[0].strip()))) for lat, lon, h in coords],
+                    columns=["Tên điểm", "X (m)", "Y (m)", "h (m)"]
+                )
+                st.session_state.df = df
+                st.session_state.textout = "\n".join(
+                    f"{row['Tên điểm']} {row['X (m)']} {row['Y (m)']} {row['h (m)']}"
+                    for _, row in df.iterrows()
+                )
+                st.success(f"✅ Đã xử lý {len(df)} điểm.")
+            else:
+                st.error("⚠️ Không có dữ liệu hợp lệ!")
+
+# --- Output preview ---
+with col_mid:
+    st.markdown("### 📊 Kết quả")
+    if "df" in st.session_state:
+        df = st.session_state.df
+        st.dataframe(df, height=250)
+        st.text_area("📄 Text kết quả", st.session_state.get("textout", ""), height=200)
+
+        col_csv, col_kml = st.columns(2)
+        with col_csv:
             st.download_button(
-                label="📥 Tải kết quả CSV",
+                label="📀 Tải CSV",
                 data=df.to_csv(index=False).encode("utf-8"),
-                file_name="toado_WGS84.csv",
+                file_name="converted_points.csv",
                 mime="text/csv"
             )
+        with col_kml:
+            kml = df_to_kml(df)
+            if kml:
+                st.download_button(
+                    label="📀 Tải KML",
+                    data=kml,
+                    file_name="converted_points.kml",
+                    mime="application/vnd.google-earth.kml+xml"
+                )
+
+# --- Map rendering ---
+with col_map:
+    st.markdown("### 🗺️ Bản đồ")
+    if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
+        df_sorted = st.session_state.df.sort_values(by="Tên điểm", key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)), ascending=True).reset_index(drop=True)
+
+        map_type = st.selectbox("Chế độ bản đồ", options=["Giao Thông", "Vệ tinh"], index=0)
+        tileset = "OpenStreetMap" if map_type == "Giao Thông" else "Esri.WorldImagery"
+
+        col_btn1, col_btn2, col_btn3 = st.columns(3)
+        with col_btn1:
+            if st.button("🔵 Nối các điểm"):
+                st.session_state.join_points = not st.session_state.get("join_points", False)
+
+        with col_btn2:
+            if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
+                if st.button("📐 Tính diện tích VN2000 / WGS84"):
+                    parsed, errors = parse_coordinates(coords_input)
+
+                    if not parsed:
+                        st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
+                    else:
+                        xy_points = [(x, y) for _, x, y, _ in parsed]
+                        latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
+                        A1, A2, diff, ha1, ha2 = compare_areas(xy_points, latlon_points)
+                        st.markdown(f"""
+                        ### 📐 So sánh diện tích
+                        🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
+                        🌍 Geodesic (WGS84): `{A2:,.1f} m²` (~{ha2:.1f} ha)  
+                        """)
+                       
+        with col_btn3:
+            if st.button("📏 Hiện kích thước cạnh"):
+                st.session_state.show_lengths = not st.session_state.get("show_lengths", False)
+
+        m = folium.Map(location=[df_sorted.iloc[0]["Vĩ độ (Lat)"], df_sorted.iloc[0]["Kinh độ (Lon)"]], zoom_start=15, tiles=tileset)
+
+        if st.session_state.get("join_points", False):
+            points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+            draw_polygon(m, points)
+            add_numbered_markers(m, df_sorted)
+            if st.session_state.get("show_lengths", False):
+                add_edge_lengths(m, points)
         else:
-            st.warning("⚠️ Không có dữ liệu hợp lệ để chuyển đổi.")
-# --- Map rendering update fix ---
-if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
-    df_sorted = st.session_state.df.copy()
-    df_sorted["Tên điểm"] = df_sorted["Tên điểm"].astype(str)
-    df_sorted = df_sorted.sort_values(
-        by="Tên điểm",
-        key=lambda col: col.map(lambda x: int(x) if x.isdigit() else x),
-        ascending=True
-    ).reset_index(drop=True)
+            add_numbered_markers(m, df_sorted)
 
-    map_type = st.selectbox("Chế độ bản đồ", options=["Giao Thông", "Vệ tinh"], index=0)
-    tileset = "OpenStreetMap" if map_type == "Giao Thông" else "Esri.WorldImagery"
+        st_folium(m, width="100%", height=400)
+   
 
-    col_btn1, col_btn2, col_btn3 = st.columns(3)
-    with col_btn1:
-        if st.button("🔵 Nối các điểm"):
-            st.session_state.join_points = not st.session_state.get("join_points", False)
-
-    with col_btn2:
-        if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
-            if st.button("📐 Tính diện tích VN2000 / WGS84"):
-                parsed, errors = parse_coordinates(coords_input)
-
-                if not parsed:
-                    st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
-                else:
-                    xy_points = [(x, y) for _, x, y, _ in parsed]
-                    latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
-                    A1, A2, diff, ha1, ha2 = compare_areas(xy_points, latlon_points)
-                    st.markdown(f"""
-                    ### 📐 So sánh diện tích
-                    🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
-                    🌍 Geodesic (WGS84): `{A2:,.1f} m²` (~{ha2:.1f} ha)  
-                    """)
-
-    with col_btn3:
-        if st.button("📏 Hiện kích thước cạnh"):
-            st.session_state.show_lengths = not st.session_state.get("show_lengths", False)
-
-    m = folium.Map(location=[df_sorted.iloc[0]["Vĩ độ (Lat)"], df_sorted.iloc[0]["Kinh độ (Lon)"]], zoom_start=15, tiles=tileset)
-
-    if st.session_state.get("join_points", False):
-        points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-        draw_polygon(m, points)
-        add_numbered_markers(m, df_sorted)
-        if st.session_state.get("show_lengths", False):
-            add_edge_lengths(m, points)
-    else:
-        add_numbered_markers(m, df_sorted)
-
-    st_folium(m, width="100%", height=400)
 
 # --- Footer ---
 show_footer()
