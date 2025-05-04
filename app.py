@@ -18,6 +18,7 @@ from functions.area import compute_polygon_area
 from functions.edges import add_edge_lengths
 from functions.markers import add_numbered_markers
 from functions.polygon import draw_polygon
+
 # --- Page setup ---
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 set_background("assets/background.png")
@@ -89,7 +90,7 @@ with col_left:
             parsed, errors = parse_coordinates(coords_input)
             if parsed:
                 df = pd.DataFrame(
-                    [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("\u2013")[0].strip()))) for ten, x, y, h in parsed],
+                    [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
                     columns=["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
                 )
                 st.session_state.df = df
@@ -124,7 +125,7 @@ with col_left:
 
             if coords:
                 df = pd.DataFrame(
-                    [("", *wgs84_to_vn2000_baibao(lat, lon, h, float(selected_display.split("\u2013")[0].strip()))) for lat, lon, h in coords],
+                    [("", *wgs84_to_vn2000_baibao(lat, lon, h, float(selected_display.split("–")[0].strip()))) for lat, lon, h in coords],
                     columns=["Tên điểm", "X (m)", "Y (m)", "h (m)"]
                 )
                 st.session_state.df = df
@@ -194,8 +195,6 @@ with col_map:
 
         if st.session_state.get("join_points", False):
             points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-            if points[0] != points[-1]:
-                points.append(points[0])
             draw_polygon(m, points)
             add_numbered_markers(m, df_sorted)
             if st.session_state.get("show_lengths", False):
