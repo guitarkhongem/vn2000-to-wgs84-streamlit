@@ -5,7 +5,7 @@ def parse_coordinates(text):
         return [], []
 
     tokens = re.split(r'[\s\n]+', text.strip())
-    tokens = [t.replace(",", ".") for t in tokens]  # chuẩn hóa dấu ,
+    tokens = [t.replace(",", ".") for t in tokens]  # Chuẩn hóa dấu phẩy
     coords = []
     errors = []
     i = 0
@@ -13,7 +13,7 @@ def parse_coordinates(text):
     while i < len(tokens):
         token = tokens[i]
 
-        # --- Nhận dạng mã hiệu EN ---
+        # --- EN format ---
         if re.fullmatch(r"[EN]\d{8}", token):
             x, y = None, None
             prefix = token[0]
@@ -37,7 +37,7 @@ def parse_coordinates(text):
             i += 1
             continue
 
-        # --- STT X Y H (4 giá trị) ---
+        # --- STT X Y H ---
         if i + 3 < len(tokens):
             stt = tokens[i]
             try:
@@ -50,7 +50,7 @@ def parse_coordinates(text):
             except:
                 pass
 
-        # --- STT X Y (3 giá trị khuyết Z) ---
+        # --- STT X Y ---
         if i + 2 < len(tokens):
             stt = tokens[i]
             try:
@@ -62,7 +62,7 @@ def parse_coordinates(text):
             except:
                 pass
 
-        # --- X Y [H] hoặc chỉ X Y ---
+        # --- X Y [H] ---
         chunk = []
         for _ in range(3):
             if i < len(tokens):
@@ -78,13 +78,12 @@ def parse_coordinates(text):
         else:
             i += 1
 
-    # --- Phân loại dữ liệu hợp lệ và lỗi ---
+    # --- Phân loại hợp lệ/sai ---
     filtered = []
     for ten_diem, x, y, h in coords:
         if 500_000 <= x <= 2_650_000 and 330_000 <= y <= 670_000 and -1000 <= h <= 3200:
             filtered.append([ten_diem, x, y, h])
         else:
-            # Ghi lý do lỗi chi tiết
             reason = []
             if not (500_000 <= x <= 2_650_000):
                 reason.append(f"X={x} ngoài miền")
