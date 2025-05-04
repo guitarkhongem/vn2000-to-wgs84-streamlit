@@ -214,25 +214,25 @@ with col_map:
             add_numbered_markers(m, df_sorted)
 
         st_folium(m, width="100%", height=400)
-    # --- Nút riêng để so sánh diện tích ---
-    if st.button("📐 So sánh diện tích VN2000 / WGS84"):
-        parsed, errors = parse_coordinates(coords_input)
+        # --- Nút riêng: Chỉ hiện khi đã có kết quả chuyển đổi WGS84 ---
+    if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
+        if st.button("📐 So sánh diện tích VN2000 / WGS84"):
+            parsed, errors = parse_coordinates(coords_input)
 
-        if not parsed:
-            st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
-        elif "df" not in st.session_state or not {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
-            st.warning("⚠️ Chưa có kết quả chuyển đổi WGS84.")
-        else:
-            xy_points = [(x, y) for _, x, y, _ in parsed]
-            latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
-            A_shoelace, A_geo, diff = compare_areas(xy_points, latlon_points)
+            if not parsed:
+                st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
+            else:
+                xy_points = [(x, y) for _, x, y, _ in parsed]
+                latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
+                A_shoelace, A_geo, diff = compare_areas(xy_points, latlon_points)
 
-            st.markdown(f"""
-            ### 📐 So sánh diện tích
-            🧮 Shoelace (VN2000): `{A_shoelace:,.2f} m²`  
-            🌍 Geodesic (WGS84): `{A_geo:,.2f} m²`  
-            📉 Sai lệch: `{diff:.2f}%`
-            """)
+                st.markdown(f"""
+                ### 📐 So sánh diện tích
+                🧮 Shoelace (VN2000): `{A_shoelace:,.2f} m²`  
+                🌍 Geodesic (WGS84): `{A_geo:,.2f} m²`  
+                📉 Sai lệch: `{diff:.2f}%`
+                """)
+
 
 # --- Footer ---
 show_footer()
