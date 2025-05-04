@@ -8,54 +8,77 @@ def parse_coordinates(text):
     coords = []
     errors = []
     auto_index = 1
+    i = 0
 
-    for line in lines:
-        line = line.strip().replace(",", ".")
+    while i < len(lines):
+        line = lines[i].strip().replace(",", ".")
         tokens = re.split(r'[\t\s]+', line)
         tokens = [t for t in tokens if t]
 
+        # --- Trường hợp dòng chứa duy nhất mã hiệu E/N ---
+        if len(tokens) == 1 and re.fullmatch(r"[EN]\d{8}", tokens[0]):
+            if i + 1 < len(lines):
+                next_tokens = re.split(r'[\t\s]+', lines[i+1].strip())
+                next_tokens = [t for t in next_tokens if t]
+                if len(next_tokens) == 1 and re.fullmatch(r"[EN]\d{8}", next_tokens[0]):
+                    all_tokens = [tokens[0], next_tokens[0]]
+                    x, y = None, None
+                    for t in all_tokens:
+                        if t.startswith("E"):
+                            y = int(t[1:])
+                        elif t.startswith("N"):
+                            x = int(t[1:])
+                    if x is not None and y is not None:
+                        coords.append([f"Điểm {auto_index}", float(x), float(y), 0.0])
+                        auto_index += 1
+                        i += 2
+                        continue
+            errors.append([line, "Thiếu dòng mã hiệu E/N kèm theo"])
+            i += 1
+            continue
+
+        # --- Trường hợp dòng chứa E/N trên cùng dòng ---
+        if len(tokens) == 2 and all(re.fullmatch(r"[EN]\d{8}", t) for t in tokens):
+            x, y = None, None
+            for t in tokens:
+                if t.startswith("E"):
+                    y = int(t[1:])
+                elif t.startswith("N"):
+                    x = int(t[1:])
+            if x is not None and y is not None:
+                coords.append([f"Điểm {auto_index}", float(x), float(y), 0.0])
+                auto_index += 1
+            else:
+                errors.append([line, "Không tách được E/N"])
+            i += 1
+            continue
+
+        # --- Trường hợp dòng số: STT X Y H hoặc STT X Y hoặc X Y H hoặc X Y ---
         try:
-            # --- Dạng E12345678 N56781234 ---
-            if len(tokens) == 2 and re.match(r"^[EN]\d{8}$", tokens[0]) and re.match(r"^[EN]\d{8}$", tokens[1]):
-                x, y = None, None
-                for t in tokens:
-                    if t.startswith("E"):
-                        y = int(t[1:])
-                    elif t.startswith("N"):
-                        x = int(t[1:])
-                if x is not None and y is not None:
-                    coords.append([f"Điểm {auto_index}", float(x), float(y), 0.0])
-                    auto_index += 1
-                else:
-                    raise ValueError("Không tách được E/N")
-
-            # --- Dạng STT X Y H ---
-            elif len(tokens) == 4:
+            if len(tokens) == 4:
                 stt, x, y, h = tokens
-                coords.append([stt, float(x), float(y), float(h)])
-
-            # --- Dạng STT X Y ---
+                x, y, h = float(x), float(y), float(h)
+                coords.append([stt, x, y, h])
             elif len(tokens) == 3:
-                stt, x, y = tokens
-                coords.append([stt, float(x), float(y), 0.0])
-
-            # --- Dạng X Y (không STT) ---
+                try:
+                    # Trường hợp không có STT
+                    x, y, h = map(float, tokens)
+                    coords.append([f"Điểm {auto_index}", x, y, h])
+                    auto_index += 1
+                except:
+                    # Trường hợp STT X Y
+                    stt, x, y = tokens
+                    x, y = float(x), float(y)
+                    coords.append([stt, x, y, 0.0])
             elif len(tokens) == 2:
                 x, y = map(float, tokens)
                 coords.append([f"Điểm {auto_index}", x, y, 0.0])
                 auto_index += 1
-
-            # --- Dạng X Y H (không STT) ---
-            elif len(tokens) == 3:
-                x, y, h = map(float, tokens)
-                coords.append([f"Điểm {auto_index}", x, y, h])
-                auto_index += 1
-
             else:
-                raise ValueError("Không đúng định dạng STT X Y [H]")
-
+                raise ValueError("Không đúng định dạng")
         except Exception as e:
             errors.append([line, f"Lỗi: {e}"])
+        i += 1
 
     # --- Lọc theo điều kiện cứng ---
     filtered = []
