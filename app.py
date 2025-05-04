@@ -205,6 +205,7 @@ with col_mid:
 
 
 
+
 # --- Map rendering ---
 with col_map:
     st.markdown("### 🗺️ Bản đồ")
