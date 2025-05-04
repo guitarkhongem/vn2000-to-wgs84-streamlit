@@ -92,8 +92,6 @@ with col_left:
         ❌ **Toạ độ ngoài miền hợp lệ** (X, Y, H) sẽ được liệt kê ở bảng lỗi.
         """, unsafe_allow_html=True)
 
-
-
 # --- Map rendering update fix ---
 if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
     df_sorted = st.session_state.df.copy()
