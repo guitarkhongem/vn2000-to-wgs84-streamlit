@@ -155,7 +155,8 @@ with col_mid:
     st.markdown("### 📊 Kết quả")
     if "df" in st.session_state:
         df = st.session_state.df
-        st.dataframe(df, height=250)
+        st.dataframe(df_edges.drop(df_edges.columns[0], axis=1), height=250)
+
         st.text_area("📄 Text kết quả", st.session_state.get("textout", ""), height=200)
 
         col_csv, col_kml = st.columns(2)
@@ -187,7 +188,8 @@ with col_mid:
             if points:
                 df_edges = compute_edge_lengths(points)
                 st.markdown("### 📏 Bảng độ dài các cạnh")
-                st.dataframe(df_edges, height=250)
+                st.dataframe(df_edges.drop(df_edges.columns[0], axis=1), height=250)
+
                 st.download_button(
                     label="📤 Tải bảng độ dài cạnh (CSV)",
                     data=df_edges.to_csv(index=False).encode("utf-8"),
