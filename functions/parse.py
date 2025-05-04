@@ -7,23 +7,53 @@ def parse_coordinates(text):
     lines = text.strip().splitlines()
     coords = []
     errors = []
+    auto_index = 1
 
     for line in lines:
         line = line.strip().replace(",", ".")
         tokens = re.split(r'[\t\s]+', line)
-        tokens = [t for t in tokens if t]  # bỏ trống
+        tokens = [t for t in tokens if t]
 
         try:
-            if len(tokens) == 4:
+            # --- Dạng E12345678 N56781234 ---
+            if len(tokens) == 2 and re.match(r"^[EN]\d{8}$", tokens[0]) and re.match(r"^[EN]\d{8}$", tokens[1]):
+                x, y = None, None
+                for t in tokens:
+                    if t.startswith("E"):
+                        y = int(t[1:])
+                    elif t.startswith("N"):
+                        x = int(t[1:])
+                if x is not None and y is not None:
+                    coords.append([f"Điểm {auto_index}", float(x), float(y), 0.0])
+                    auto_index += 1
+                else:
+                    raise ValueError("Không tách được E/N")
+
+            # --- Dạng STT X Y H ---
+            elif len(tokens) == 4:
                 stt, x, y, h = tokens
-                x, y, h = float(x), float(y), float(h)
-                coords.append([stt, x, y, h])
+                coords.append([stt, float(x), float(y), float(h)])
+
+            # --- Dạng STT X Y ---
             elif len(tokens) == 3:
                 stt, x, y = tokens
-                x, y = float(x), float(y)
-                coords.append([stt, x, y, 0.0])
+                coords.append([stt, float(x), float(y), 0.0])
+
+            # --- Dạng X Y (không STT) ---
+            elif len(tokens) == 2:
+                x, y = map(float, tokens)
+                coords.append([f"Điểm {auto_index}", x, y, 0.0])
+                auto_index += 1
+
+            # --- Dạng X Y H (không STT) ---
+            elif len(tokens) == 3:
+                x, y, h = map(float, tokens)
+                coords.append([f"Điểm {auto_index}", x, y, h])
+                auto_index += 1
+
             else:
                 raise ValueError("Không đúng định dạng STT X Y [H]")
+
         except Exception as e:
             errors.append([line, f"Lỗi: {e}"])
 
