@@ -192,7 +192,6 @@ with col_map:
                         ### 📐 So sánh diện tích
                         🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
                         🌍 Geodesic (WGS84): `{A2:,.1f} m²` (~{ha2:.1f} ha)  
-                        📉 Sai lệch: `{diff:.1f}%`
                         """)
                        
         with col_btn3:
