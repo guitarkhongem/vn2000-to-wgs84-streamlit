@@ -6,7 +6,7 @@ import folium
 from streamlit_folium import st_folium
 from shapely.geometry import Polygon, LineString
 from PIL import Image
-from functions.edges import compute_edge_lengths
+from functions.EdgeLengths import compute_edge_lengths
 
 import tempfile
 
