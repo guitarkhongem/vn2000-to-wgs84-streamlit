@@ -176,7 +176,7 @@ with col_mid:
                     mime="application/vnd.google-earth.kml+xml"
                 )
 
-        # 👉 Hiển thị bảng độ dài các cạnh khi nối điểm + bật kích thước
+        # 👉 THÊM NGAY DƯỚI ĐÂY (nằm trong col_mid)
         if st.session_state.get("join_points", False) and st.session_state.get("show_lengths", False):
             df_sorted = df.sort_values(
                 by="Tên điểm",
@@ -184,24 +184,16 @@ with col_mid:
                 ascending=True
             ).reset_index(drop=True)
             points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-            
-            if len(points) >= 2:
+            if points:
                 df_edges = compute_edge_lengths(points)
-                st.session_state.df_edges = df_edges
-
                 st.markdown("### 📏 Bảng độ dài các cạnh")
-                st.table(df_edges)  # Không hiển thị cột chỉ mục
-
+                st.dataframe(df_edges, height=250)
                 st.download_button(
                     label="📤 Tải bảng độ dài cạnh (CSV)",
                     data=df_edges.to_csv(index=False).encode("utf-8"),
                     file_name="edge_lengths.csv",
                     mime="text/csv"
                 )
-            else:
-                st.warning("⚠️ Cần ít nhất 2 điểm để tính độ dài cạnh.")
-
-
 
 
 
