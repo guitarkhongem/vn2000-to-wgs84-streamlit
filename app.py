@@ -6,6 +6,8 @@ import folium
 from streamlit_folium import st_folium
 from shapely.geometry import Polygon, LineString
 from PIL import Image
+from functions.edges import compute_edge_lengths
+
 import tempfile
 
 # --- Custom functions ---
@@ -14,7 +16,6 @@ from functions.parse import parse_coordinates
 from functions.kml import df_to_kml
 from functions.footer import show_footer
 from functions.converter import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao
-from functions.area import compute_polygon_area
 from functions.edges import add_edge_lengths
 from functions.markers import add_numbered_markers
 from functions.polygon import draw_polygon
@@ -174,6 +175,25 @@ with col_mid:
                     file_name="converted_points.kml",
                     mime="application/vnd.google-earth.kml+xml"
                 )
+        # --- Hiển thị bảng độ dài cạnh nếu đã nối điểm ---
+        if st.session_state.get("join_points", False):
+            df_sorted = df.sort_values(by="Tên điểm", key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)), ascending=True).reset_index(drop=True)
+            points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+            if points:
+                df_edges = compute_edge_lengths(points)
+            else:
+                st.warning("⚠️ Không có điểm hợp lệ để tính độ dài cạnh.")
+                df_edges = pd.DataFrame(columns=["Edge", "Length (m)"])
+
+            st.markdown("### 📏 Bảng độ dài các cạnh")
+            st.dataframe(df_edges, height=250)
+
+            st.download_button(
+                label="📤 Tải bảng độ dài cạnh (CSV)",
+                data=df_edges.to_csv(index=False).encode("utf-8"),
+                file_name="edge_lengths.csv",
+                mime="text/csv"
+            )
 
 # --- Map rendering ---
 with col_map:
