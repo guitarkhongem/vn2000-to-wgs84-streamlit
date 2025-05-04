@@ -18,7 +18,7 @@ from functions.area import compute_polygon_area
 from functions.edges import add_edge_lengths
 from functions.markers import add_numbered_markers
 from functions.polygon import draw_polygon
-
+from functions.compare_area import compare_areas
 # --- Page setup ---
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 set_background("assets/background.png")
@@ -184,8 +184,19 @@ with col_map:
                     area, perimeter = compute_polygon_area(points)
                     if area > 0:
                         st.markdown(f"📏 Diện tích theo WGS84: {area:,.2f} m²  |  ~ {area / 10000:.2f} ha")
-                    else:
-                        st.warning("⚠️ Cần ít nhất 3 điểm để tính diện tích.")
+
+                # So sánh với Shoelace nếu có tọa độ VN2000
+                if {"X (m)", "Y (m)"} <= set(st.session_state.df.columns):
+                    xy_points = [(row["X (m)"], row["Y (m)"]) for _, row in st.session_state.df.iterrows()]
+                    A_shoelace, A_geo, diff = compare_areas(xy_points, points)
+                    st.markdown(f"""
+                    📏 Shoelace (VN2000): {A_shoelace:,.2f} m²  
+                    🌍 Geodesic (WGS84): {A_geo:,.2f} m²  
+                    🔍 Sai lệch: ~{diff:.2f}%
+                    """)
+            else:
+                st.warning("⚠️ Cần ít nhất 3 điểm để tính diện tích.")
+
 
         with col_btn3:
             if st.button("📏 Hiện kích thước cạnh"):
