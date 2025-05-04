@@ -88,8 +88,7 @@ with col_left:
         | 5   | `1838446.03 550074.77 37.98`              | X Y H                                |
 
         ✅ **Phân cách** có thể là: khoảng trắng, tab, hoặc xuống dòng.  
-        ❌ **Toạ độ ngoài miền hợp lệ** (X, Y, H) sẽ được liệt kê ở bảng lỗi.
-        """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
 
     selected_display = st.selectbox("🫐 Kinh tuyến trục", options=lon0_display, index=default_index)
 
