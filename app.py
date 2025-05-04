@@ -175,25 +175,25 @@ with col_mid:
                     file_name="converted_points.kml",
                     mime="application/vnd.google-earth.kml+xml"
                 )
-        # --- Hiển thị bảng độ dài cạnh nếu đã nối điểm ---
-        if st.session_state.get("join_points", False):
-            df_sorted = df.sort_values(by="Tên điểm", key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)), ascending=True).reset_index(drop=True)
-            points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-            if points:
-                df_edges = compute_edge_lengths(points)
-            else:
-                st.warning("⚠️ Không có điểm hợp lệ để tính độ dài cạnh.")
-                df_edges = pd.DataFrame(columns=["Edge", "Length (m)"])
 
+        # --- Bảng độ dài các cạnh ---
+        df_sorted = df.sort_values(
+            by="Tên điểm",
+            key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
+            ascending=True
+        ).reset_index(drop=True)
+        points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+        if len(points) >= 2:
+            df_edges = compute_edge_lengths(points)
             st.markdown("### 📏 Bảng độ dài các cạnh")
             st.dataframe(df_edges, height=250)
-
             st.download_button(
                 label="📤 Tải bảng độ dài cạnh (CSV)",
                 data=df_edges.to_csv(index=False).encode("utf-8"),
                 file_name="edge_lengths.csv",
                 mime="text/csv"
             )
+
 
 # --- Map rendering ---
 with col_map:
