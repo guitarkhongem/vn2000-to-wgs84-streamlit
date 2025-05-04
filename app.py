@@ -91,7 +91,25 @@ with col_left:
         ✅ **Phân cách** có thể là: khoảng trắng, tab, hoặc xuống dòng.  
         ❌ **Toạ độ ngoài miền hợp lệ** (X, Y, H) sẽ được liệt kê ở bảng lỗi.
         """, unsafe_allow_html=True)
+ # --- Nút chuyển đổi tọa độ ---
+    selected_display = st.selectbox("🧭 Kinh tuyến trục", options=lon0_display, index=default_index)
 
+    if st.button("➡️ Chuyển sang WGS84"):
+        parsed, errors = parse_coordinates(coords_input)
+        if parsed:
+            df = pd.DataFrame(
+                [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip()))) for ten, x, y, h in parsed],
+                columns=["Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
+            )
+            st.dataframe(df)
+            st.download_button(
+                label="📥 Tải kết quả CSV",
+                data=df.to_csv(index=False).encode("utf-8"),
+                file_name="toado_WGS84.csv",
+                mime="text/csv"
+            )
+        else:
+            st.warning("⚠️ Không có dữ liệu hợp lệ để chuyển đổi.")
 # --- Map rendering update fix ---
 if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(st.session_state.df.columns):
     df_sorted = st.session_state.df.copy()
