@@ -187,8 +187,7 @@ with col_map:
                     else:
                         xy_points = [(x, y) for _, x, y, _ in parsed]
                         latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
-                        A_shoelace, A_geo, diff = compare_areas(xy_points, latlon_points)
-
+                        A1, A2, diff, ha1, ha2 = compare_areas(xy_points, latlon_points)
                         st.markdown(f"""
                         ### 📐 So sánh diện tích
                         🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
