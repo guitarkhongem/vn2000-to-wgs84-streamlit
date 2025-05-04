@@ -105,48 +105,48 @@ if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset
         ascending=True
     ).reset_index(drop=True)
 
+    map_type = st.selectbox("Chế độ bản đồ", options=["Giao Thông", "Vệ tinh"], index=0)
+    tileset = "OpenStreetMap" if map_type == "Giao Thông" else "Esri.WorldImagery"
 
-        map_type = st.selectbox("Chế độ bản đồ", options=["Giao Thông", "Vệ tinh"], index=0)
-        tileset = "OpenStreetMap" if map_type == "Giao Thông" else "Esri.WorldImagery"
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+    with col_btn1:
+        if st.button("🔵 Nối các điểm"):
+            st.session_state.join_points = not st.session_state.get("join_points", False)
 
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        with col_btn1:
-            if st.button("🔵 Nối các điểm"):
-                st.session_state.join_points = not st.session_state.get("join_points", False)
+    with col_btn2:
+        if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
+            if st.button("📐 Tính diện tích VN2000 / WGS84"):
+                parsed, errors = parse_coordinates(coords_input)
 
-        with col_btn2:
-            if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
-                if st.button("📐 Tính diện tích VN2000 / WGS84"):
-                    parsed, errors = parse_coordinates(coords_input)
+                if not parsed:
+                    st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
+                else:
+                    xy_points = [(x, y) for _, x, y, _ in parsed]
+                    latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
+                    A1, A2, diff, ha1, ha2 = compare_areas(xy_points, latlon_points)
+                    st.markdown(f"""
+                    ### 📐 So sánh diện tích
+                    🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
+                    🌍 Geodesic (WGS84): `{A2:,.1f} m²` (~{ha2:.1f} ha)  
+                    """)
 
-                    if not parsed:
-                        st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
-                    else:
-                        xy_points = [(x, y) for _, x, y, _ in parsed]
-                        latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
-                        A1, A2, diff, ha1, ha2 = compare_areas(xy_points, latlon_points)
-                        st.markdown(f"""
-                        ### 📐 So sánh diện tích
-                        🧮 Shoelace (VN2000): `{A1:,.1f} m²` (~{ha1:.1f} ha)  
-                        🌍 Geodesic (WGS84): `{A2:,.1f} m²` (~{ha2:.1f} ha)  
-                        """)
-                       
-        with col_btn3:
-            if st.button("📏 Hiện kích thước cạnh"):
-                st.session_state.show_lengths = not st.session_state.get("show_lengths", False)
+    with col_btn3:
+        if st.button("📏 Hiện kích thước cạnh"):
+            st.session_state.show_lengths = not st.session_state.get("show_lengths", False)
 
-        m = folium.Map(location=[df_sorted.iloc[0]["Vĩ độ (Lat)"], df_sorted.iloc[0]["Kinh độ (Lon)"]], zoom_start=15, tiles=tileset)
+    m = folium.Map(location=[df_sorted.iloc[0]["Vĩ độ (Lat)"], df_sorted.iloc[0]["Kinh độ (Lon)"]], zoom_start=15, tiles=tileset)
 
-        if st.session_state.get("join_points", False):
-            points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-            draw_polygon(m, points)
-            add_numbered_markers(m, df_sorted)
-            if st.session_state.get("show_lengths", False):
-                add_edge_lengths(m, points)
-        else:
-            add_numbered_markers(m, df_sorted)
+    if st.session_state.get("join_points", False):
+        points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+        draw_polygon(m, points)
+        add_numbered_markers(m, df_sorted)
+        if st.session_state.get("show_lengths", False):
+            add_edge_lengths(m, points)
+    else:
+        add_numbered_markers(m, df_sorted)
 
-        st_folium(m, width="100%", height=400)
+    st_folium(m, width="100%", height=400)
+
    
 
 
