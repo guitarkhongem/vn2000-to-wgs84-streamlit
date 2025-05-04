@@ -185,10 +185,11 @@ with col_mid:
                 ascending=True
             ).reset_index(drop=True)
             points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-            if points:
-                df_edges = compute_edge_lengths(points)
-                st.markdown("### 📏 Bảng độ dài các cạnh")
-                st.dataframe(df_edges.drop(df_edges.columns[0], axis=1), height=250)
+if points:
+    df_edges = compute_edge_lengths(points)
+    st.markdown("### 📏 Bảng độ dài các cạnh")
+    st.dataframe(df_edges.drop(df_edges.columns[0], axis=1), height=250)
+
 
                 st.download_button(
                     label="📤 Tải bảng độ dài cạnh (CSV)",
