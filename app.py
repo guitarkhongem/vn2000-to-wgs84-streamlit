@@ -17,7 +17,7 @@ from functions.converter import vn2000_to_wgs84_baibao, wgs84_to_vn2000_baibao
 from functions.area import compute_polygon_area
 from functions.edges import add_edge_lengths
 from functions.markers import add_numbered_markers
-
+from functions.polygon import draw_polygon
 # --- Page setup ---
 st.set_page_config(page_title="VN2000 ⇄ WGS84 Converter", layout="wide")
 set_background("assets/background.png")
@@ -196,13 +196,8 @@ with col_map:
             points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
             if points[0] != points[-1]:
                 points.append(points[0])
-            folium.PolyLine(locations=points, weight=3, color="blue", tooltip="Polygon khép kín").add_to(m)
-
-            for i in range(len(points) - 1):
-                folium.CircleMarker(location=points[i], radius=6, color='black', fill=True, fill_color='white', fill_opacity=1, tooltip=f"Điểm {i + 1}").add_to(m)
-
+            draw_polygon(m, points)
             add_numbered_markers(m, df_sorted)
-
             if st.session_state.get("show_lengths", False):
                 add_edge_lengths(m, points)
         else:
