@@ -12,7 +12,9 @@ def add_numbered_markers(map_obj, df):
 
         folium.Marker(
             location=[lat, lon],
-            icon=folium.Icon(icon="plus", color="red"),
+            icon=folium.DivIcon(html=f"""
+                <div style='font-size:12px; color:red; font-weight:bold;'>+</div>
+            """),
             tooltip=f"{label}: {ten_diem}"
         ).add_to(map_obj)
 
