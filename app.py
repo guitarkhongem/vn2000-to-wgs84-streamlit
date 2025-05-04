@@ -188,7 +188,8 @@ with col_mid:
             if points:
                 df_edges = compute_edge_lengths(points)
                 st.markdown("### 📏 Bảng độ dài các cạnh")
-                st.dataframe(df_edges.drop(df_edges.columns[0], axis=1), height=250)
+                df_edges_preview = df_edges.iloc[:, 1:] if df_edges.shape[1] > 1 else df_edges
+                st.dataframe(df_edges_preview, height=250)
                 st.download_button(
                     label="📤 Tải bảng độ dài cạnh (CSV)",
                     data=df_edges.to_csv(index=False).encode("utf-8"),
