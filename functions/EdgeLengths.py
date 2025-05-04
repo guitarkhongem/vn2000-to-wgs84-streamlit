@@ -7,28 +7,16 @@ def compute_edge_lengths(points):
     Trả về pandas.DataFrame: STT, Cạnh, Độ dài (m)
     """
     rows = []
-    for i in range(len(points) - 1):
+    n = len(points)
+    for i in range(n):
         lat1, lon1 = points[i]
-        lat2, lon2 = points[i + 1]
+        lat2, lon2 = points[(i + 1) % n]  # đảm bảo vòng tròn, điểm cuối nối điểm đầu
         g = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
         dist = g['s12']
         rows.append({
             "STT": i + 1,
-            "Cạnh": f"{i+1}-{i+2}",
+            "Cạnh": f"{i+1}-{(i+2 if i+1 < n else 1)}",
             "Độ dài (m)": round(dist, 2)
         })
-
-    # Thêm cạnh nối điểm cuối và đầu nếu khoảng cách lớn hơn 0.1m
-    if len(points) > 2:
-        lat1, lon1 = points[-1]
-        lat2, lon2 = points[0]
-        g = Geodesic.WGS84.Inverse(lat1, lon1, lat2, lon2)
-        dist = g['s12']
-        if dist > 0.1:
-            rows.append({
-                "STT": len(points),
-                "Cạnh": f"{len(points)}-1",
-                "Độ dài (m)": round(dist, 2)
-            })
 
     return pd.DataFrame(rows)
