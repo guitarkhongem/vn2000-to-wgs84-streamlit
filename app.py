@@ -101,7 +101,8 @@ with tab1:
         parsed, errors = parse_coordinates(coords_input)
         if parsed:
             df = pd.DataFrame(
-                [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("-")[0].strip()))) for ten, x, y, h in parsed],
+                [(ten, *vn2000_to_wgs84_baibao(x, y, h, float(selected_display.split("–")[0].strip())
+)) for ten, x, y, h in parsed],
                 columns=["STT", "Vĩ độ (Lat)", "Kinh độ (Lon)", "H (m)"]
             )
             df["Tên điểm"] = df["STT"]
