@@ -177,22 +177,28 @@ with col_mid:
                 )
 
         # --- Bảng độ dài các cạnh ---
-        df_sorted = df.sort_values(
-            by="Tên điểm",
-            key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
-            ascending=True
-        ).reset_index(drop=True)
-        points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-        if len(points) >= 2:
-            df_edges = compute_edge_lengths(points)
-            st.markdown("### 📏 Bảng độ dài các cạnh")
-            st.dataframe(df_edges, height=250)
-            st.download_button(
-                label="📤 Tải bảng độ dài cạnh (CSV)",
-                data=df_edges.to_csv(index=False).encode("utf-8"),
-                file_name="edge_lengths.csv",
-                mime="text/csv"
-            )
+        if {"Tên điểm", "Vĩ độ (Lat)", "Kinh độ (Lon)"}.issubset(df.columns):
+            df_sorted = df.sort_values(
+                by="Tên điểm",
+                key=lambda col: col.map(lambda x: int(x) if str(x).isdigit() else str(x)),
+                ascending=True
+            ).reset_index(drop=True)
+            points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
+            if len(points) >= 2:
+                try:
+                    df_edges = compute_edge_lengths(points)
+                    st.markdown("### 📏 Bảng độ dài các cạnh")
+                    st.dataframe(df_edges, height=250)
+                    st.download_button(
+                        label="📤 Tải bảng độ dài cạnh (CSV)",
+                        data=df_edges.to_csv(index=False).encode("utf-8"),
+                        file_name="edge_lengths.csv",
+                        mime="text/csv"
+                    )
+                except Exception as e:
+                    st.error(f"⚠️ Error computing edge lengths: {e}")
+        else:
+            st.warning("⚠️ Required columns are missing in the DataFrame.")
 
 
 # --- Map rendering ---
