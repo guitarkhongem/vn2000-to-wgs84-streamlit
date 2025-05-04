@@ -20,6 +20,6 @@ def add_numbered_markers(map_obj, df):
         folium.Marker(
             location=[lat, lon],
             icon=folium.DivIcon(html=f"""
-                <div style='font-size:9px; font-weight:bold; color:red'>{label}</div>
+                <div style='font-size:18x; font-weight:bold; color:red'>{label}</div>
             """)
         ).add_to(map_obj)
