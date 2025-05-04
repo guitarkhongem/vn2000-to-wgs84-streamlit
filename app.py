@@ -119,39 +119,40 @@ with tab1:
 
 
     with tab2:
-        if st.button("⬅️ Chuyển sang VN2000"):
-    tokens = re.split(r"[\s\n]+", coords_input.strip())
-    coords = []
-    i = 0
-    while i < len(tokens):
-        chunk = []
-        for _ in range(3):
-            if i < len(tokens):
-                try:
-                    chunk.append(float(tokens[i].replace(",", ".")))
-                except:
-                    break
+    if st.button("⬅️ Chuyển sang VN2000"):
+        tokens = re.split(r"[\s\n]+", coords_input.strip())
+        coords = []
+        i = 0
+        while i < len(tokens):
+            chunk = []
+            for _ in range(3):
+                if i < len(tokens):
+                    try:
+                        chunk.append(float(tokens[i].replace(",", ".")))
+                    except:
+                        break
+                    i += 1
+            if len(chunk) == 2:
+                chunk.append(0.0)
+            if len(chunk) == 3:
+                coords.append(chunk)
+            else:
                 i += 1
-        if len(chunk) == 2:
-            chunk.append(0.0)
-        if len(chunk) == 3:
-            coords.append(chunk)
-        else:
-            i += 1
 
-    if coords:
-        df = pd.DataFrame(
-            [(str(i+1), *wgs84_to_vn2000_baibao(lat, lon, h, float(selected_display.split("–")[0].strip()))) for i, (lat, lon, h) in enumerate(coords)],
-            columns=["Tên điểm", "X (m)", "Y (m)", "h (m)"]
-        )
-        st.session_state.df = df
-        st.session_state.textout = "\n".join(
-            f"{row['Tên điểm']} {row['X (m)']} {row['Y (m)']} {row['h (m)']}"
-            for _, row in df.iterrows()
-        )
-        st.success(f"✅ Đã xử lý {len(df)} điểm.")
-    else:
-        st.error("⚠️ Không có dữ liệu hợp lệ!")
+        if coords:
+            df = pd.DataFrame(
+                [(str(i+1), *wgs84_to_vn2000_baibao(lat, lon, h, float(selected_display.split("–")[0].strip()))) for i, (lat, lon, h) in enumerate(coords)],
+                columns=["Tên điểm", "X (m)", "Y (m)", "h (m)"]
+            )
+            st.session_state.df = df
+            st.session_state.textout = "\n".join(
+                f"{row['Tên điểm']} {row['X (m)']} {row['Y (m)']} {row['h (m)']}"
+                for _, row in df.iterrows()
+            )
+            st.success(f"✅ Đã xử lý {len(df)} điểm.")
+        else:
+            st.error("⚠️ Không có dữ liệu hợp lệ!")
+
 
 
 # --- Output preview ---
