@@ -15,15 +15,27 @@ def parse_coordinates(text):
         tokens = re.split(r'[\t\s]+', line)
         tokens = [t for t in tokens if t]
 
-        # --- Trường hợp dòng chứa duy nhất mã hiệu E/N ---
+        # --- Trường hợp gom 3 dòng số đơn ---
+        if len(tokens) == 1 and i + 2 < len(lines):
+            try:
+                x = float(lines[i].strip().replace(",", "."))
+                y = float(lines[i+1].strip().replace(",", "."))
+                h = float(lines[i+2].strip().replace(",", "."))
+                coords.append([f"Điểm {auto_index}", x, y, h])
+                auto_index += 1
+                i += 3
+                continue
+            except:
+                pass
+
+        # --- Trường hợp dòng chứa E/N riêng biệt ---
         if len(tokens) == 1 and re.fullmatch(r"[EN]\d{8}", tokens[0]):
             if i + 1 < len(lines):
                 next_tokens = re.split(r'[\t\s]+', lines[i+1].strip())
                 next_tokens = [t for t in next_tokens if t]
                 if len(next_tokens) == 1 and re.fullmatch(r"[EN]\d{8}", next_tokens[0]):
-                    all_tokens = [tokens[0], next_tokens[0]]
                     x, y = None, None
-                    for t in all_tokens:
+                    for t in [tokens[0], next_tokens[0]]:
                         if t.startswith("E"):
                             y = int(t[1:])
                         elif t.startswith("N"):
@@ -37,7 +49,7 @@ def parse_coordinates(text):
             i += 1
             continue
 
-        # --- Trường hợp dòng chứa E/N trên cùng dòng ---
+        # --- Trường hợp E/N cùng dòng ---
         if len(tokens) == 2 and all(re.fullmatch(r"[EN]\d{8}", t) for t in tokens):
             x, y = None, None
             for t in tokens:
@@ -53,23 +65,19 @@ def parse_coordinates(text):
             i += 1
             continue
 
-        # --- Trường hợp dòng số: STT X Y H hoặc STT X Y hoặc X Y H hoặc X Y ---
+        # --- Dòng STT X Y H / STT X Y / X Y H / X Y ---
         try:
             if len(tokens) == 4:
                 stt, x, y, h = tokens
-                x, y, h = float(x), float(y), float(h)
-                coords.append([stt, x, y, h])
+                coords.append([stt, float(x), float(y), float(h)])
             elif len(tokens) == 3:
                 try:
-                    # Trường hợp không có STT
                     x, y, h = map(float, tokens)
                     coords.append([f"Điểm {auto_index}", x, y, h])
                     auto_index += 1
                 except:
-                    # Trường hợp STT X Y
                     stt, x, y = tokens
-                    x, y = float(x), float(y)
-                    coords.append([stt, x, y, 0.0])
+                    coords.append([stt, float(x), float(y), 0.0])
             elif len(tokens) == 2:
                 x, y = map(float, tokens)
                 coords.append([f"Điểm {auto_index}", x, y, 0.0])
@@ -80,7 +88,7 @@ def parse_coordinates(text):
             errors.append([line, f"Lỗi: {e}"])
         i += 1
 
-    # --- Lọc theo điều kiện cứng ---
+    # --- Lọc miền ---
     filtered = []
     for ten_diem, x, y, h in coords:
         if 500_000 <= x <= 2_650_000 and 330_000 <= y <= 670_000 and -1000 <= h <= 3200:
