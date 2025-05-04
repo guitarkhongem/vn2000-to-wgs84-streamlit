@@ -56,12 +56,12 @@ def geodesic_area(points):
 def compare_areas(flat_xy_points, latlon_points):
     """
     So sánh diện tích tính bằng Shoelace (VN2000) và Geodesic (WGS84)
-    Trả về: (shoelace_area, geodesic_area, percent_diff)
+    Trả về: (shoelace_area, geodesic_area, percent_diff, ha_shoelace, ha_geodesic)
     """
     A1 = shoelace_area(flat_xy_points)
     A2 = geodesic_area(latlon_points)
     if max(A1, A2) == 0:
-        return A1, A2, 0.0
+        return round(A1, 1), round(A2, 1), 0.0, round(A1 / 10000, 1), round(A2 / 10000, 1)
 
     diff_percent = abs(A1 - A2) / max(A1, A2) * 100
-    return A1, A2, diff_percent
+    return round(A1, 1), round(A2, 1), round(diff_percent, 1), round(A1 / 10000, 1), round(A2 / 10000, 1)
