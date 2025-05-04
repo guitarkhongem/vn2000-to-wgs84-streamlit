@@ -178,25 +178,23 @@ with col_map:
                 st.session_state.join_points = not st.session_state.get("join_points", False)
 
         with col_btn2:
-            if st.session_state.get("join_points", False):
-                if st.button("📐 Tính diện tích WGS84"):
-                    points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
-                    area, perimeter = compute_polygon_area(points)
-                    if area > 0:
-                        st.markdown(f"📏 Diện tích theo WGS84: {area:,.2f} m²  |  ~ {area / 10000:.2f} ha")
+            if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
+                if st.button("📐 Tính diện tích VN2000 / WGS84"):
+                    parsed, errors = parse_coordinates(coords_input)
 
-                # So sánh với Shoelace nếu có tọa độ VN2000
-                if {"X (m)", "Y (m)"} <= set(st.session_state.df.columns):
-                    xy_points = [(row["X (m)"], row["Y (m)"]) for _, row in st.session_state.df.iterrows()]
-                    A_shoelace, A_geo, diff = compare_areas(xy_points, points)
-                    st.markdown(f"""
-                    📏 Shoelace (VN2000): {A_shoelace:,.2f} m²  
-                    🌍 Geodesic (WGS84): {A_geo:,.2f} m²  
-                    🔍 Sai lệch: ~{diff:.2f}%
-                    """)
-            else:
-                st.warning("⚠️ Cần ít nhất 3 điểm để tính diện tích.")
+                    if not parsed:
+                        st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
+                    else:
+                        xy_points = [(x, y) for _, x, y, _ in parsed]
+                        latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
+                        A_shoelace, A_geo, diff = compare_areas(xy_points, latlon_points)
 
+                        st.markdown(f"""
+                        ### 📐 So sánh diện tích
+                        🧮 Shoelace (VN2000): `{A_shoelace:,.2f} m²`  
+                        🌍 Geodesic (WGS84): `{A_geo:,.2f} m²`  
+                        📉 Sai lệch: `{diff:.2f}%`
+                        """)
 
         with col_btn3:
             if st.button("📏 Hiện kích thước cạnh"):
@@ -214,24 +212,7 @@ with col_map:
             add_numbered_markers(m, df_sorted)
 
         st_folium(m, width="100%", height=400)
-        # --- Nút riêng: Chỉ hiện khi đã có kết quả chuyển đổi WGS84 ---
-    if "df" in st.session_state and {"Vĩ độ (Lat)", "Kinh độ (Lon)"} <= set(st.session_state.df.columns):
-        if st.button("📐 So sánh diện tích VN2000 / WGS84"):
-            parsed, errors = parse_coordinates(coords_input)
-
-            if not parsed:
-                st.warning("⚠️ Dữ liệu đầu vào không hợp lệ hoặc chưa có.")
-            else:
-                xy_points = [(x, y) for _, x, y, _ in parsed]
-                latlon_points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in st.session_state.df.iterrows()]
-                A_shoelace, A_geo, diff = compare_areas(xy_points, latlon_points)
-
-                st.markdown(f"""
-                ### 📐 So sánh diện tích
-                🧮 Shoelace (VN2000): `{A_shoelace:,.2f} m²`  
-                🌍 Geodesic (WGS84): `{A_geo:,.2f} m²`  
-                📉 Sai lệch: `{diff:.2f}%`
-                """)
+   
 
 
 # --- Footer ---
