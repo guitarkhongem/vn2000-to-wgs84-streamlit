@@ -155,8 +155,7 @@ with col_mid:
     st.markdown("### 📊 Kết quả")
     if "df" in st.session_state:
         df = st.session_state.df
-        st.dataframe(df, height=250)  # ❗ Hiển thị bảng chính, KHÔNG dùng df_edges ở đây
-
+        st.dataframe(df, height=250)
         st.text_area("📄 Text kết quả", st.session_state.get("textout", ""), height=200)
 
         col_csv, col_kml = st.columns(2)
@@ -177,7 +176,7 @@ with col_mid:
                     mime="application/vnd.google-earth.kml+xml"
                 )
 
-        # 👉 Đặt vào bên trong `with col_mid:`, sau khi có `df`
+        # 👉 THÊM NGAY DƯỚI ĐÂY (nằm trong col_mid)
         if st.session_state.get("join_points", False) and st.session_state.get("show_lengths", False):
             df_sorted = df.sort_values(
                 by="Tên điểm",
@@ -188,17 +187,13 @@ with col_mid:
             if points:
                 df_edges = compute_edge_lengths(points)
                 st.markdown("### 📏 Bảng độ dài các cạnh")
-                df_edges_preview = df_edges.iloc[:, 1:] if df_edges.shape[1] > 1 else df_edges
-                st.dataframe(df_edges_preview, height=250)
+                st.dataframe(df_edges, height=250)
                 st.download_button(
                     label="📤 Tải bảng độ dài cạnh (CSV)",
                     data=df_edges.to_csv(index=False).encode("utf-8"),
                     file_name="edge_lengths.csv",
                     mime="text/csv"
                 )
-
-
-
 
 
 
@@ -238,8 +233,30 @@ with col_map:
             if st.button("📏 Hiện kích thước cạnh"):
                 st.session_state.show_lengths = not st.session_state.get("show_lengths", False)
 
-        m = folium.Map(location=[df_sorted.iloc[0]["Vĩ độ (Lat)"], df_sorted.iloc[0]["Kinh độ (Lon)"]], zoom_start=15, tiles=tileset)
+        m = folium.Map(
+        location=[df_sorted.iloc[0]["Vĩ độ (Lat)"], df_sorted.iloc[0]["Kinh độ (Lon)"]],
+        zoom_start=15,
+        tiles=tileset
+        )
 
+        # === Marker dẫn đường ngay trên bản đồ ===
+        first_point = df_sorted.iloc[0]
+        lat = first_point["Vĩ độ (Lat)"]
+        lon = first_point["Kinh độ (Lon)"]
+        popup_html = f"""
+        <b>{first_point['Tên điểm']}</b><br>
+        <a href='https://www.google.com/maps/dir/?api=1&destination={lat},{lon}' target='_blank'>
+        📍 Dẫn đường Google Maps</a>
+        """
+
+        folium.Marker(
+            location=[lat, lon],
+            popup=popup_html,
+            tooltip="📍 Vị trí điểm đầu",
+            icon=folium.Icon(color='red', icon='map-marker', prefix='fa')
+        ).add_to(m)
+
+        # === Vẽ các điểm còn lại ===
         if st.session_state.get("join_points", False):
             points = [(row["Vĩ độ (Lat)"], row["Kinh độ (Lon)"]) for _, row in df_sorted.iterrows()]
             draw_polygon(m, points)
@@ -250,6 +267,15 @@ with col_map:
             add_numbered_markers(m, df_sorted)
 
         st_folium(m, width="100%", height=400)
+
+        # === Nút dẫn đường riêng bên dưới bản đồ ===
+        maps_url = f"https://www.google.com/maps/dir/?api=1&destination={lat},{lon}"
+        st.markdown(
+            f"<a href='{maps_url}' target='_blank'>"
+            f"<button style='padding:8px 16px; font-size:16px; background-color:#2d8cff; color:white; border:none; border-radius:5px;'>🧭 Dẫn đường Google Maps (điểm đầu)</button>"
+            f"</a>",
+            unsafe_allow_html=True
+        )
    
 
 
