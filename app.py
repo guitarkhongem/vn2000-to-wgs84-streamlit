@@ -244,7 +244,7 @@ with col_map:
         # ✅ THÊM VÀO ĐÂY: Lớp GeoJSON từ URL
         import requests
         try:
-            url = "https://github.com/guitarkhongem/vn2000-to-wgs84-streamlit/blob/main/data/QHHUONGHOA_30.geojson"
+            url = "https://raw.githubusercontent.com/guitarkhongem/vn2000-to-wgs84-streamlit/main/data/QHHUONGHOA_30.geojson"
             geojson_data = requests.get(url).json()
 
             folium.GeoJson(
