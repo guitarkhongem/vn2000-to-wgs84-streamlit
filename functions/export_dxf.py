@@ -1,5 +1,4 @@
 import ezdxf
-from ezdxf.enums import TextEntityAlignment
 
 
 def export_to_dxf(points, output_path, cross_size=0.5):
@@ -15,7 +14,7 @@ def export_to_dxf(points, output_path, cross_size=0.5):
         x = float(x)
         y = float(y)
 
-        # --- Vẽ dấu + (KHÔNG ĐẢO XY) ---
+        # --- DẤU + (KHÔNG ĐẢO XY) ---
         msp.add_line(
             (x - cross_size, y),
             (x + cross_size, y)
@@ -25,15 +24,13 @@ def export_to_dxf(points, output_path, cross_size=0.5):
             (x, y + cross_size)
         )
 
-        # --- Ghi tên điểm ---
-        txt = msp.add_text(
+        # --- TEXT TÊN ĐIỂM ---
+        msp.add_text(
             str(name),
-            dxfattribs={"height": cross_size * 1.2}
-        )
-
-        txt.set_pos(
-            (x + cross_size * 1.2, y + cross_size * 1.2),
-            align=TextEntityAlignment.LEFT
+            dxfattribs={
+                "height": cross_size * 1.2,
+                "insert": (x + cross_size * 1.2, y + cross_size * 1.2)
+            }
         )
 
     doc.saveas(output_path)
