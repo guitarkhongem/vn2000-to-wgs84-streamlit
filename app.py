@@ -7,7 +7,7 @@ from streamlit_folium import st_folium
 from shapely.geometry import Polygon, LineString
 from PIL import Image
 from functions.EdgeLengths import compute_edge_lengths
-import requests
+
 import tempfile
 
 # --- Custom functions ---
@@ -238,22 +238,7 @@ with col_map:
         zoom_start=15,
         tiles=tileset
         )
-        # ✅ Thêm lớp nền vào bản đồ
-        folium.TileLayer(tiles=tileset, name="Nền bản đồ").add_to(m)
 
-        # ✅ THÊM VÀO ĐÂY: Lớp GeoJSON từ URL
-        import requests
-        try:
-            url = "https://raw.githubusercontent.com/guitarkhongem/vn2000-to-wgs84-streamlit/main/data/QHHUONGHOA_30.geojson"
-            geojson_data = requests.get(url).json()
-
-            folium.GeoJson(
-                geojson_data,
-                name="📂 Lớp Quy hoạch",
-                show=True
-            ).add_to(m)
-        except Exception as e:
-            st.warning(f"Lỗi tải lớp quy hoạch: {e}")
         # === Marker dẫn đường ngay trên bản đồ ===
         first_point = df_sorted.iloc[0]
         lat = first_point["Vĩ độ (Lat)"]
@@ -280,7 +265,6 @@ with col_map:
                 add_edge_lengths(m, points)
         else:
             add_numbered_markers(m, df_sorted)
-        folium.LayerControl(collapsed=False).add_to(m)
 
         st_folium(m, width="100%", height=400)
 
