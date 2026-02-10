@@ -1,33 +1,31 @@
 import ezdxf
 
-def export_to_dxf(points, out_path, cross_size=0.5):
+def export_to_dxf(points, filename, cross_size=1.0):
     """
-    points: list of (name, X, Y)
-    cross_size: nửa chiều dài dấu cộng (đơn vị mét)
+    points: list[(name, X, Y)]
+    cross_size: kích thước dấu +
     """
     doc = ezdxf.new("R2010")
     msp = doc.modelspace()
 
     for name, x, y in points:
-        # --- Dấu cộng (+) ---
+        # ---- Vẽ dấu cộng (+) ----
         msp.add_line(
             (x - cross_size, y),
             (x + cross_size, y),
-            dxfattribs={"layer": "POINTS"}
         )
         msp.add_line(
             (x, y - cross_size),
             (x, y + cross_size),
-            dxfattribs={"layer": "POINTS"}
         )
 
-        # --- Tên điểm ---
+        # ---- Ghi tên điểm ----
         msp.add_text(
-            name,
+            str(name),
             dxfattribs={
-                "height": cross_size * 2,
-                "layer": "LABELS"
+                "height": cross_size * 1.2,
+                "insert": (x + cross_size * 1.5, y + cross_size * 1.5),
             }
-        ).set_pos((x + cross_size * 1.2, y + cross_size * 1.2))
+        )
 
-    doc.saveas(out_path)
+    doc.saveas(filename)
