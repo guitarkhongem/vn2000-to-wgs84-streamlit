@@ -1,33 +1,43 @@
 import ezdxf
 
-def export_to_dxf(points, out_path, cross_size=0.5):
+
+def export_to_dxf(points, filepath):
     """
-    points: list of (name, X, Y)
-    cross_size: nửa chiều dài dấu cộng (đơn vị mét)
+    points: list of (name, x, y)
+        x = Northing (BẮC)
+        y = Easting  (ĐÔNG)
+    DXF:
+        X = Easting
+        Y = Northing
     """
-    doc = ezdxf.new("R2010")
+
+    doc = ezdxf.new(dxfversion="R2010")
     msp = doc.modelspace()
 
+    # Layers
+    if "POINTS" not in doc.layers:
+        doc.layers.new(name="POINTS", dxfattribs={"color": 1})
+    if "TEXT" not in doc.layers:
+        doc.layers.new(name="TEXT", dxfattribs={"color": 3})
+
     for name, x, y in points:
-        # --- Dấu cộng (+) ---
-        msp.add_line(
-            (x - cross_size, y),
-            (x + cross_size, y),
-            dxfattribs={"layer": "POINTS"}
-        )
-        msp.add_line(
-            (x, y - cross_size),
-            (x, y + cross_size),
+        Xcad = y   # ĐẢO Ở ĐÂY
+        Ycad = x
+
+        # Vẽ điểm
+        msp.add_point(
+            (Xcad, Ycad),
             dxfattribs={"layer": "POINTS"}
         )
 
-        # --- Tên điểm ---
-        msp.add_text(
-            name,
+        # Ghi tên điểm
+        txt = msp.add_text(
+            str(name),
             dxfattribs={
-                "height": cross_size * 2,
-                "layer": "LABELS"
+                "height": 1.2,
+                "layer": "TEXT"
             }
-        ).set_pos((x + cross_size * 1.2, y + cross_size * 1.2))
+        )
+        txt.dxf.insert = (Xcad + 1.0, Ycad + 1.0)
 
-    doc.saveas(out_path)
+    doc.saveas(filepath)
