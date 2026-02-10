@@ -42,7 +42,7 @@ def export_to_dxf(points, filepath, cross_size=0.5):
         msp.add_text(
             str(name),
             dxfattribs={
-                "height": cross_size * 1.5,
+                "height": cross_size * 3,
                 "layer": "TEXT",
                 "insert": (Xcad + cross_size * 1.2, Ycad + cross_size * 1.2)
             }
